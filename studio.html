@@ -1180,9 +1180,9 @@
     var c2 = rotY(add(left, mul(eu1, hw)), ang), eu2 = rotV(eu1, ang), ev2 = rotV(ev, ang);
     var TKHe = TKH, tkv = TKV;
     if (UB && !photoMode && TKC.room !== false && canvas.width >= canvas.height) {      // (BA5) a wide screen: room for the scan button under the ticket (60 px for the upper row, 204 px in all)
-      var chh = canvas.clientHeight || canvas.height, cww = canvas.clientWidth || canvas.width, band = Math.max(120, chh - 204);
-      TKHe = Math.min(TKH, band * TKI.size_mm[0] / TKI.size_mm[1] / cww); tkv = (60 + band / 2 - chh / 2) / chh;
-      var fk = P.raw ? 1 : FITB.k, fs = P.raw ? 0 : FITB.s, fN = 1 - 2 * (60 + band / 2) / chh;      // (BD4) exactly in its band on the screen, whatever the picture does: the look, the lift (AQ2) and the fit to the free room are taken out again (before, the lift pushed its upper edge 18 px up, under the stars)
+      var chh = canvas.clientHeight || canvas.height, cww = canvas.clientWidth || canvas.width, t0 = FITB.top > 80 ? FITB.top : 60, band = Math.max(120, chh - 144 - t0);      // (t0: where the ticket's band begins; 60 px on the clean page, lower where the page's upper rows stand lower, as on the builder page)
+      TKHe = Math.min(TKH, band * TKI.size_mm[0] / TKI.size_mm[1] / cww); tkv = (t0 + band / 2 - chh / 2) / chh;
+      var fk = P.raw ? 1 : FITB.k, fs = P.raw ? 0 : FITB.s, fN = 1 - 2 * (t0 + band / 2) / chh;      // (BD4) exactly in its band on the screen, whatever the picture does: the look, the lift (AQ2) and the fit to the free room are taken out again (before, the lift pushed its upper edge 18 px up, under the stars)
       tkv = -((UB.look || 0) - (CFG.liftW || 0) + (fs + fN) / fk) / 2; TKHe = TKHe / fk;
     }
     var z3 = TKI.size_mm[0] / (2 * P.sx * TKHe); if (!P.raw) TKZ = z3;
