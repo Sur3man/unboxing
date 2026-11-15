@@ -1853,7 +1853,7 @@
     hk: 30, hv: 2.9, hd: 12, hland: 0.8, tr: 0.22,                                   // the helper of the button: grip, travelling speed, braking, speed at which it sets the box down, time to set in
     jw: 26, jz: 0.6, jc: 46,                                                         // the landing presses the box down: swing, loss, millimetres a second per radian a second
     zk: 760, zc: 60, zv: 1100, zlead: 4, zp: 3.25, zn: 0.34, zf: 26, zpull: 15000, ztr: 0.3,   // the strip: pull per millimetre the hand is ahead, braking, fastest tear, how far the hand leads before it tears (the tension), a catch at every scallop of the cut and its strength, friction when let go, the helper
-    lip: 12, lip0: 0, zth: 2.0,                                                      // how much of the strip is loose at its start once a hand has taken it, and before (nothing: it lies in its place, whole, with its round end); how thick the strip is (mm)
+    lip: 12, lip0: 0, zth: 1.0,                                                      // how much of the strip is loose at its start once a hand has taken it, and before (nothing: it lies in its place, whole, with its round end); how thick the strip is (mm)
     lopen: 112 * DEG, lw: 10, lz: 0.62, lkick: 4.5,                                    // the lid pops open: open angle, swing, loss, its first push
     pw: 24, pz: 0.3,                                                                 // the band under the box springs back to its fold when the tray lets it go: swing, loss
     gw: 7.5, gz: 0.9, gup: 26, gw2: 8.5, gz2: 0.95, gdown: 7,                           // the gift box rises (how far above the rim) and comes down (it aims a little below the floor, so it lands with some speed)
@@ -1973,92 +1973,56 @@
     var v = sub(add(h.o, mul(h.d, t)), F), L = Math.sqrt(dot(v, v)) || 1;
     return Math.max(0, L - Math.min(UBR.Lg, 0.8 * sv)) * (0.5 + 0.5 * v[0] / L);
   }
+  /* STEP 7C (BE, Tomas 15 November 04:28, with a recording: "Completelly tix the zipper when unzipping. It ahould look completelly realistic, of 1mm 3layer paper.
+     Dont make that wiggle strange"). The torn part of the strip is ONE piece of board. Behind the tear it turns up out of its channel in a short curve (R6.fold),
+     and from there it keeps the curl a peeled board keeps (R6.curl: one even curve, away from the box, the print on its inner side), back over the channel it
+     left. Its width stands upright there, like a ruler held on its edge, so its own weight cannot bend it. Two numbers move it: ph, how far it is raised off
+     the box at the tear (more while it is pulled), and ps, how far it is skewed towards the finger. Each follows its aim softly and never swings over. The
+     shape is worked out from these two, piece by piece: nothing can wriggle. When the box is turned away from this side, the strip lies down flat (zf). */
+  var R6 = { fold: 9, curl: 1 / 280, cap: 1.2, rest: 0.22, pull: 0.4, more: 0.3, skew: 0.3, w1: 15, w2: 11, minA: 0.05 };      // the fold's radius (mm), the curl it keeps (1/mm) and the most it turns in all (rad), raised at the tear at rest and while pulled (rad), how much more when pulled hard, the widest skew (rad), how fast the two follow (1/s), the least angle off the box (rad)
+  function ubRodAt(fr, q, ph, ps, kc) {        // the place of the strip q millimetres behind the tear (room), raised by ph, skewed by ps, with the curl kc
+    var eb = add(mul(fr.et, -Math.cos(ps)), mul(fr.bu, Math.sin(ps))), r = R6.fold, la = r * ph, a, x, y;
+    if (q <= la) { a = q / r; x = r * Math.sin(a); y = r * (1 - Math.cos(a)); }
+    else { var sq = q - la, k = Math.max(1e-5, kc), sm = Math.max(0, (R6.cap - ph) / k), s1 = Math.min(sq, sm), th = ph + k * s1;      // (it curls away from the box, and no further than R6.cap in all)
+      x = r * Math.sin(ph) + (Math.sin(th) - Math.sin(ph)) / k + (sq - s1) * Math.cos(th); y = r * (1 - Math.cos(ph)) + (Math.cos(ph) - Math.cos(th)) / k + (sq - s1) * Math.sin(th); }
+    return add(add(fr.F, mul(eb, x)), mul(fr.nw, y + 0.3));
+  }
   function ubRodStep(now, dt) {                 // true: it has come to rest
-    var R = UB.rod, U = UBR, fr = ubRodFrame(), sv = fr.sv, n, i, k, it, P, Q;
-    if (UB.stage === 'free') { R.P = []; R.Q = []; return true; }
-    if (UB.fly) {                               // torn off: it flies away, turning as it falls
-      for (k = 0; k < R.P.length; k++) { P = R.P[k]; Q = R.Q[k]; var vx = (P[0] - Q[0]) * 0.985, vy = (P[1] - Q[1]) * 0.985 - U.g * 0.55 * dt * dt, vz = (P[2] - Q[2]) * 0.985; Q[0] = P[0]; Q[1] = P[1]; Q[2] = P[2]; P[0] += vx; P[1] += vy; P[2] += vz; }
-      for (it = 0; it < 8; it++) {
-        for (k = 0; k + 1 < R.P.length; k++) ubRodDist(R.P[k], R.P[k + 1], U.ds, 0.5, 0.5, 1);
-        for (k = 0; k + 2 < R.P.length; k++) ubRodDist(R.P[k], R.P[k + 2], 2 * U.ds, 0.5, 0.5, 0.85);      // (step 7B: stiff in the air too)
-        for (k = 0; k + 6 < R.P.length; k += 2) ubRodDist(R.P[k], R.P[k + 6], 6 * U.ds, 0.5, 0.5, 0.6);
-      }
+    var R = UB.rod, U = UBR, fr = ubRodFrame(), sv = fr.sv, n, k, i;
+    if (UB.stage === 'free') { R.P = []; R.Q = []; R.fl = null; return true; }
+    if (UB.fly) {                               // torn off: one stiff piece that leaves with the pull, turns slowly and falls
+      var f = R.fl; if (!f || f.rel.length !== R.P.length) return false;
+      var t = Math.max(0, (now - UB.fly.t0) / 1000), ca = Math.cos(f.w * t), sa = Math.sin(f.w * t), ax = f.ax, c = [f.c[0] + f.v[0] * t, f.c[1] + f.v[1] * t - 0.5 * 0.5 * U.g * t * t, f.c[2] + f.v[2] * t];
+      for (k = 0; k < R.P.length; k++) { var v = f.rel[k], cr = cross(ax, v), dd = dot(ax, v) * (1 - ca); R.P[k] = [c[0] + v[0] * ca + cr[0] * sa + ax[0] * dd, c[1] + v[1] * ca + cr[1] * sa + ax[1] * dd, c[2] + v[2] * ca + cr[2] * sa + ax[2] * dd]; R.Q[k] = R.P[k].slice(); }
       return false;
     }
     if (UB.s >= UB.S) { R.P = []; R.Q = []; return true; }
     n = ubRodCount(sv); if (n < 1) { R.P = []; R.Q = []; return true; }      // (nothing of it is loose yet)
-    while (R.P.length < n) { var hp = add(ubRodHome(R.P.length), mul(fr.nw, 0.3)); R.P.push(hp); R.Q.push(hp.slice()); R.calm = 0; }      // a newly freed piece starts where it lay
-    if (R.P.length > n) { R.P.length = n; R.Q.length = n; }
-    var held = UB.zheld || UB.zgo, key = UB.th + UB.j * 0.01 + UB.cz * 0.001 + sv * 1e-3;
-    if (held || key !== R.key) R.calm = 0; R.key = key;
-    if (R.calm > 24) return true;               // asleep until something moves
-    var Lr = sv - (n - 1) * U.ds, Lg = Math.min(U.Lg, 0.8 * sv), peel = U.peel * (0.16 + 0.84 * UB.lipK), tF = add(mul(fr.et, -Math.cos(peel)), mul(fr.nw, Math.sin(peel))), G = sub(fr.F, mul(tF, U.ds));
-    var kp = -1, pinT = null;
-    if (held) {                                 // the hand: the piece just ahead of the tear is in it
-      var H = ubHandPoint(fr), hv = sub(H, fr.F), hl = Math.sqrt(dot(hv, hv)) || 1; if (hl > Lg * 1.02) H = add(fr.F, mul(hv, Lg * 1.02 / hl));
-      var pg = sv - Lg; kp = Math.min(n - 1, Math.max(0, Math.ceil(pg / U.ds - 1e-6)));
-      var uu = sub(fr.F, H), ul = Math.sqrt(dot(uu, uu)) || 1; pinT = add(H, mul(uu, Math.max(0, kp * U.ds - pg) / ul));
-      if (R.grab === undefined || R.grab < 0) R.grab = now; var gk = sl01((now - R.grab) / 70); pinT = add(mul(R.P[kp], 1 - gk), mul(pinT, gk));
-    } else R.grab = -1;
-    /* STEP 7B (AQ13, Tomas 14 November 22:08: "should not be from that much of gluey kind of looking and snake looking material. It should be more stiff ...
-       it's the paper ... it bends, but it's not elastic"). The freed strip is a strip of board, not a string of beads: (1) it cannot stretch: every piece lies
-       exactly one piece's length from the next, counted outward from where it is held; (2) it is stiff: every piece wants to lie in the line of the piece before
-       it and gives way only a little (U.stiff), so the strip stands off the box in one smooth arc that its weight bends down, and nothing in it wriggles;
-       (3) it trails behind the hand, peeled up from the box, as paper does. The steps are of one fixed length (U.hz): as stiff on a slow phone as on a fast one. */
-    var m = Math.max(1, Math.min(14, Math.round(dt * U.hz))), h = dt / m, mv = 0, s2, gy = U.g * h * h, dk = Math.max(0, 1 - U.drag * h), sf = U.stiff, j0, prev, dir, len, T, dl;
-    function rodOut(p) {                        // the bottom of the box is solid
-      var dn = dot(sub(p, fr.P0), fr.nw);
-      if (dn < 0.5 && Math.abs(p[0] - UB.cx) < UBC.W / 2 + 2) { var pu = dot(sub(p, fr.P0), fr.bu); if (Math.abs(pu) < UBC.D / 2 + 2) { p[0] += fr.nw[0] * (0.5 - dn); p[1] += fr.nw[1] * (0.5 - dn); p[2] += fr.nw[2] * (0.5 - dn); } }
+    var held = !!(UB.zheld || UB.zgo), aimP = (0.16 + 0.84 * UB.lipK) * R6.rest, aimS = 0, zf = sl01((ubZipP(UB.th) - 0.3) / 0.5);      // (zf: 1 with this side to the viewer, 0 when the box is turned away: then the strip lies flat)
+    if (held) {                                 // pulled: it stands up more, the harder the more; and it leans a little towards the finger
+      aimP = R6.pull + R6.more * sl01(ubLead(sv) / 14);
+      var h = UB.hand; if (h && h.d) { var den = dot(h.d, fr.nw); if (Math.abs(den) > 1e-6) { var tt = (dot(sub(fr.P0, h.o), fr.nw) + U.out) / den; if (tt > 0) { var hb = dot(sub(add(h.o, mul(h.d, tt)), fr.F), fr.bu); aimS = Math.max(-R6.skew, Math.min(R6.skew, 0.55 * Math.atan2(hb, 26))); } } }
     }
-    for (s2 = 0; s2 < m; s2++) {
-      for (k = 0; k < n; k++) {                 // its own weight and the air
-        P = R.P[k]; Q = R.Q[k]; if (k === kp) { Q[0] = P[0]; Q[1] = P[1]; Q[2] = P[2]; continue; }
-        var ax = (P[0] - Q[0]) * dk, ay = (P[1] - Q[1]) * dk - gy, az = (P[2] - Q[2]) * dk;
-        Q[0] = P[0]; Q[1] = P[1]; Q[2] = P[2]; P[0] += ax; P[1] += ay; P[2] += az;
-      }
-      if (kp >= 0) {                            // in the hand: the short bit between the hand and the tear is taut; the rest trails from the hand
-        R.P[kp][0] = pinT[0]; R.P[kp][1] = pinT[1]; R.P[kp][2] = pinT[2];
-        for (k = kp + 1; k < n; k++) { var fq = (k - kp) * U.ds / Math.max(1e-6, sv - kp * U.ds); P = R.P[k]; P[0] = pinT[0] + (fr.F[0] - pinT[0]) * fq; P[1] = pinT[1] + (fr.F[1] - pinT[1]) * fq; P[2] = pinT[2] + (fr.F[2] - pinT[2]) * fq; }
-        j0 = kp - 1; prev = R.P[kp]; dir = nrm(add(mul(fr.et, -U.trail), mul(fr.nw, U.lift)));      // it leaves the hand backwards and away from the box
-      } else { j0 = n - 1; prev = fr.F; dir = tF; }      // let go: it stands off the box from the tear, as the board bends it open there
-      for (k = j0; k >= 0; k--) {
-        P = R.P[k]; len = prev === fr.F ? Lr : U.ds;
-        T = [prev[0] + dir[0] * len, prev[1] + dir[1] * len, prev[2] + dir[2] * len]; rodOut(T);      // where it would lie if the strip were perfectly straight (never inside the box)
-        P[0] += (T[0] - P[0]) * sf; P[1] += (T[1] - P[1]) * sf; P[2] += (T[2] - P[2]) * sf;         // stiff: it gives way only a little
-        rodOut(P);
-        var ex = P[0] - prev[0], ey = P[1] - prev[1], ez = P[2] - prev[2]; dl = Math.sqrt(ex * ex + ey * ey + ez * ez);
-        if (dl < 1e-6) { ex = dir[0]; ey = dir[1]; ez = dir[2]; dl = 1; }
-        ex /= dl; ey /= dl; ez /= dl;
-        var cb = ex * dir[0] + ey * dir[1] + ez * dir[2];                                            // board does not fold: from one piece to the next it turns by U.bend at most
-        if (cb < Math.cos(U.bend)) { var qx = ex - cb * dir[0], qy = ey - cb * dir[1], qz = ez - cb * dir[2], ql = Math.sqrt(qx * qx + qy * qy + qz * qz); if (ql > 1e-6) { var cB = Math.cos(U.bend), sB = Math.sin(U.bend) / ql; ex = dir[0] * cB + qx * sB; ey = dir[1] * cB + qy * sB; ez = dir[2] * cB + qz * sB; } else { ex = dir[0]; ey = dir[1]; ez = dir[2]; } }
-        P[0] = prev[0] + ex * len; P[1] = prev[1] + ey * len; P[2] = prev[2] + ez * len;            // it cannot stretch: exactly its length from the piece before
-        if (P[1] < U.fl) {                      // the floor is solid: it lies on it, still at its length
-          var fdy = U.fl - prev[1], fhl = Math.sqrt(Math.max(0, len * len - fdy * fdy)), fhn = Math.sqrt(ex * ex + ez * ez);
-          if (fhn > 1e-6 && fdy <= 0) { P[0] = prev[0] + ex / fhn * fhl; P[1] = U.fl; P[2] = prev[2] + ez / fhn * fhl; ex = (P[0] - prev[0]) / len; ey = fdy / len; ez = (P[2] - prev[2]) / len; } else P[1] = U.fl;
-          Q = R.Q[k]; Q[0] += (P[0] - Q[0]) * 0.35; Q[2] += (P[2] - Q[2]) * 0.35;                   // (on the floor it drags)
-        }
-        dir = [ex, ey, ez]; prev = P;
-      }
-      for (k = 0; k < n; k++) { P = R.P[k]; Q = R.Q[k]; var dd = Math.abs(P[0] - Q[0]) + Math.abs(P[1] - Q[1]) + Math.abs(P[2] - Q[2]); if (dd > mv) mv = dd;
-        if (!(P[0] === P[0] && P[1] === P[1] && P[2] === P[2])) { var hm = ubRodHome(k); R.P[k] = hm; R.Q[k] = hm.slice(); } }      // (never a broken number)
-    }
-    if (mv / h < 14) { for (k = 0; k < n; k++) { P = R.P[k]; Q = R.Q[k]; Q[0] += (P[0] - Q[0]) * 0.3; Q[1] += (P[1] - Q[1]) * 0.3; Q[2] += (P[2] - Q[2]) * 0.3; } }      // nearly still: it settles
-    R.tick = (R.tick || 0) + 1;
-    if (!R.snap || R.snap.length !== n * 3) { R.snap = new Float32Array(n * 3); R.tick = 0; R.calm = 0; }
-    if (R.tick % 6 === 0) {                     // at rest when no piece has moved four tenths of a millimetre for a while
-      var far = 0; for (k = 0; k < n; k++) { P = R.P[k]; far = Math.max(far, Math.abs(P[0] - R.snap[3 * k]) + Math.abs(P[1] - R.snap[3 * k + 1]) + Math.abs(P[2] - R.snap[3 * k + 2])); R.snap[3 * k] = P[0]; R.snap[3 * k + 1] = P[1]; R.snap[3 * k + 2] = P[2]; }
-      if (far < 0.4 && !held) R.calm += 6; else R.calm = 0;      // (0.4 mm in a tenth of a second: a strip lying curled on the floor under the box crept by 0.1 to 0.2 mm for ever and never came to rest; found by the random test on 13 November, 17:55)
-    }
-    if (R.calm > 24) for (k = 0; k < n; k++) { R.Q[k][0] = R.P[k][0]; R.Q[k][1] = R.P[k][1]; R.Q[k][2] = R.P[k][2]; }
-    return R.calm > 24;
+    aimP *= zf; aimS *= zf;
+    if (R.ph === undefined || !(R.ph === R.ph)) { R.ph = aimP; R.pv = 0; R.ps = 0; R.sv2 = 0; }
+    var m = Math.max(1, Math.min(12, Math.ceil(dt / 0.004))), hh = dt / m;      // two soft followers that cannot swing over
+    for (i = 0; i < m; i++) { R.pv += (R6.w1 * R6.w1 * (aimP - R.ph) - 2 * R6.w1 * R.pv) * hh; R.ph += R.pv * hh; R.sv2 += (R6.w2 * R6.w2 * (aimS - R.ps) - 2 * R6.w2 * R.sv2) * hh; R.ps += R.sv2 * hh; }
+    R.ph = Math.max(R6.minA * zf, Math.min(1.35, R.ph)); R.kc = R6.curl * zf;
+    var quiet = !held && Math.abs(aimP - R.ph) < 0.002 && Math.abs(R.pv) < 0.01 && Math.abs(aimS - R.ps) < 0.002 && Math.abs(R.sv2) < 0.01;
+    if (quiet) { R.ph = aimP; R.pv = 0; R.ps = aimS; R.sv2 = 0; }
+    R.calm = quiet ? 99 : 0;      // (read by my checks: 99 when it lies still)
+    R.P.length = n; R.Q.length = n;
+    for (k = 0; k < n; k++) { var p = ubRodAt(fr, sv - k * U.ds, R.ph, R.ps, R.kc); if (!(p[0] === p[0] && p[1] === p[1] && p[2] === p[2])) p = ubRodHome(k); R.P[k] = p; R.Q[k] = p.slice(); }      // (piece k lies k * ds from the free end; never a broken number)
+    return quiet;
   }
   function ubRodDist(a, b, len, wa, wb, k) {    // two pieces at their distance (wa, wb: how much each gives way; k: how strictly)
     var dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], l = Math.sqrt(dx * dx + dy * dy + dz * dz); if (l < 1e-6) return;
     var f = k * (l - len) / l; a[0] += dx * f * wa; a[1] += dy * f * wa; a[2] += dz * f * wa; b[0] -= dx * f * wb; b[1] -= dy * f * wb; b[2] -= dz * f * wb;
   }
-  function ubFling(now) {                       // the strip comes off: it leaves with the speed of the pull, each piece a little differently
-    var R = UB.rod, k, dt = 0.016; UB.fly = { t0: now };
-    for (k = 0; k < R.P.length; k++) { var q = k / Math.max(1, R.P.length - 1); R.Q[k] = [R.P[k][0] - (520 + 240 * q) * dt, R.P[k][1] - (330 - 160 * q) * dt, R.P[k][2] - (250 + 120 * Math.sin(5 * q)) * dt]; }
+  function ubFling(now) {                       // the strip comes off: it leaves with the pull as ONE stiff piece (BE): its shape stays, it turns slowly and falls
+    var R = UB.rod, k, n = R.P.length, c = [0, 0, 0]; UB.fly = { t0: now }; if (!n) { R.fl = null; return; }
+    for (k = 0; k < n; k++) c = add(c, mul(R.P[k], 1 / n));
+    R.fl = { c: c, rel: R.P.map(function (p) { return sub(p, c); }), v: [560, 250, 290], ax: nrm([0.25, 0.9, -0.36]), w: 2.4 };
   }
   function ubStripPts() {                       // the strip as it is drawn: its pieces from the free end to the tear, how far along the strip each is, and which way its width lies there
     var R = UB.rod; if (!UBC.zip || !R || UB.stage === 'free' || !R.P.length) return null;
@@ -2076,7 +2040,7 @@
   }
   function ubDrawStrip(b, P, U, ugn, ugl, a1, a2, plain) {
     var R = ubStripPts(); if (!R || R.al <= 0.004 || idMode || !texs.cb_strip) return;
-    var Z = UBC.zip, pv = mat4mul(P.m, viewMatrix(b)), data = [], i, j, hw = (Z.z1 - Z.z0) / 2 + Z.pad, S = UB.S, segs = [], uvq = [[0, 0], [1, 0], [1, 1], [0, 1]], fr = R.fr, TS = UBP.zth, hs = hw - Z.pad - 0.25, EM = UBC.edge || 240;
+    var Z = UBC.zip, pv = mat4mul(P.m, viewMatrix(b)), data = [], i, j, hw = (Z.z1 - Z.z0) / 2 + Z.pad, S = UB.S, segs = [], uvq = [[0, 0], [1, 0], [1, 1], [0, 1]], fr = R.fr, TS = UBP.zth, hs = hw - Z.pad - 0.25, EM = (UBC.edge || 240) * 2.4 / 4.2;      // (BE) board of 1 mm has finer flutes than the picture of the box's own edge: one every 2,4 mm
     /* a smooth line through its pieces (every span in three): it bends in a curve, not in corners; at every point its width's direction and the way its printed side looks */
     var FP = [], FS = [], FW = [], FN = [], m = R.pts.length;
     function crv(a, b2, c, d, t) { var t2 = t * t, t3 = t2 * t, o = [0, 0, 0], k; for (k = 0; k < 3; k++) o[k] = 0.5 * (2 * b2[k] + (c[k] - a[k]) * t + (2 * a[k] - 5 * b2[k] + 4 * c[k] - d[k]) * t2 + (3 * b2[k] - a[k] - 3 * c[k] + d[k]) * t3); return o; }
@@ -2115,19 +2079,21 @@
     if (U.uZt) gl.uniform4f(U.uZt, 0, 0, 0.5, 0);
     if (U.uCb) { gl.uniform1f(U.uCb, 1); gl.uniform4f(U.uCap, 0, 0, 0, 0); gl.uniform4f(U.uGl, 0, 0, 1, 0); gl.uniform2f(U.uGlB, 0, 0); }
     gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-1, -1);
-    var sd = add(mul(fr.et, 0.35), mul(fr.bu, -0.75)), sh = [], nS = 0, base = (2 * N + walls.length) * 6;
-    for (i = 0; i < N && !UB.fly; i++) {         // its shadow on the bottom of the box: each piece laid flat, moved away from the lamp by its height, fainter the higher it is and towards the borders (nothing switches)
-      var hsm = 0, sq = segs[i].map(function (p) { var hq = Math.max(0, dot(sub(p, fr.P0), fr.nw)); hsm += hq / 4; return add(add(p, mul(fr.nw, 0.25 - hq)), mul(sd, 0.45 * hq)); });
+    var SD = [add(mul(fr.et, -0.22), mul(fr.bu, -0.95))], sh = [], nS = 0, base = (2 * N + walls.length) * 6, JQ = [[0, 0, 0.12], [0.9, 0.4, 0.07], [-0.9, -0.4, 0.07], [0.4, -0.9, 0.06], [-0.4, 0.9, 0.06]], jq, jl;
+    for (jl = 0; jl < SD.length && !UB.fly; jl++) for (jq = 0; jq < JQ.length; jq++) for (i = 0; i < N; i += 3) {         // its shadow on the bottom of the box (BE): from the light above (the same that lays the box's own shadow under it); each piece is laid flat and moved down the face by its height, further than the strip's own picture moves, so the shadow shows under the strip along its whole length. Five copies a little apart make a soft border, the softer the higher the piece stands; fainter with height and towards the borders (nothing switches). (Tried and dropped: shadows from the two low lamps; they fell up into the border of the face and showed only as two dark spots at the tear.)
+      var i2 = Math.min(N - 1, i + 2), hsm = 0, sq = [segs[i][0], segs[i2][1], segs[i2][2], segs[i][3]].map(function (p) { var hq = Math.max(0, dot(sub(p, fr.P0), fr.nw)), bl = 0.5 + 0.10 * hq; hsm += hq / 4; return add(add(add(p, mul(fr.nw, 0.25 - hq)), mul(SD[jl], hq)), add(mul(fr.et, JQ[jq][0] * bl), mul(fr.bu, JQ[jq][1] * bl))); });
       var mx = (sq[0][0] + sq[1][0]) / 2 - UB.cx, mu = dot(sub(mul(add(sq[0], sq[2]), 0.5), fr.P0), fr.bu);
-      var ke = sl01((UBC.W / 2 - Math.abs(mx)) / 8) * sl01((UBC.D / 2 - Math.abs(mu)) / 8) * sl01((70 - hsm) / 30);
-      [0, 3, 2, 0, 2, 1].forEach(function (k) { data.push(sq[k][0], sq[k][1], sq[k][2], 0.5, 0.5); }); sh.push(0.34 / (1 + hsm / 12) * ke); nS++;
+      var ke = sl01((UBC.W / 2 - Math.abs(mx)) / 8) * sl01((UBC.D / 2 - Math.abs(mu)) / 8) * sl01((170 - hsm) / 60);
+      [0, 3, 2, 0, 2, 1].forEach(function (k) { data.push(sq[k][0], sq[k][1], sq[k][2], 0.5, 0.5); }); sh.push(JQ[jq][2] / (1 + hsm / 60) * ke); nS++;
     }
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.DYNAMIC_DRAW);
     if (nS && !plain) {
       gl.bindTexture(gl.TEXTURE_2D, texs.cb_kraft || texs.cb_strip);
       gl.uniform3f(ugn, 0, 0, 0); gl.uniform3f(ugl, 0, 0, 0); gl.uniform3f(U.uInk, 0, 0, 0); gl.uniform2f(U.uSize, 10, 10); gl.uniform4f(U.uMat, 0, 0, 0, 0);
       gl.uniform3f(U.uP0, 0, 0, 0); gl.uniform3f(U.uEu, 1, 0, 0); gl.uniform3f(U.uEv, 0, 1, 0); gl.uniform3f(U.uNrm, fr.nw[0], fr.nw[1], fr.nw[2]);
+      gl.depthMask(false);      // (BE) the shadow's copies lie in one plane: without this each would hide parts of the next, in stripes
       for (i = 0; i < nS; i++) { if (sh[i] < 0.004) continue; gl.uniform1f(U.uFade, sh[i] * R.al * UB.ca); gl.drawArrays(gl.TRIANGLES, base + i * 6, 6); }
+      gl.depthMask(true);
       gl.uniform1f(U.uFade, R.al * UB.ca); gl.uniform4f(U.uMat, 0, 0, MAT.grain, 53);
     }
     function face(Q, nr, tex, f, off) {           // one piece: where it is in the room, how it looks, its light
@@ -2150,7 +2116,8 @@
     for (i = 0; i < N; i++) {
       var Q = segs[i], nr = nrm(add(FN[i], FN[i + 1])), mid = mul(add(Q[0], Q[2]), 0.5), front = dot(nr, sub(b.C, mid)) > 0, pa = FS[i], pb = Math.max(FS[i + 1], pa + 0.01), r = [pa / S, 0, pb / S, 1];
       gl.uniform4f(U.uSub, -r[0] / (r[2] - r[0]), -r[1] / (r[3] - r[1]), (1 - r[0]) / (r[2] - r[0]), (1 - r[1]) / (r[3] - r[1]));
-      if (front) { if (gq) gl.uniform4f(U.uGl, gq.x, gq.k, gq.w, 0); face(Q, nr, texs.cb_strip, cbShade(nr), i); if (gq) gl.uniform4f(U.uGl, 0, 0, 1, 0); }      // its print (with its shine) ...
+      var lit = 1 + 0.07 * (1 - Math.max(0, dot(nr, fr.nw)));      // (BE) lifted off the box it turns its face towards the lamp at the right and catches a little more light
+      if (front) { if (gq) gl.uniform4f(U.uGl, gq.x, gq.k, gq.w, 0); face(Q, nr, texs.cb_strip, cbShade(nr) * lit, i); if (gq) gl.uniform4f(U.uGl, 0, 0, 1, 0); }      // its print (with its shine) ...
       else face([sub(Q[0], mul(FN[i], TS)), sub(Q[1], mul(FN[i + 1], TS)), sub(Q[2], mul(FN[i + 1], TS)), sub(Q[3], mul(FN[i], TS))], mul(nr, -1), texs.cb_strip_in || texs.cb_kraft, cbShade(mul(nr, -1)) * 1.03, N + i);      // ... or its plain underside
     }
     gl.disable(gl.POLYGON_OFFSET_FILL); gl.enable(gl.CULL_FACE); gl.uniform4f(U.uSub, 0, 0, 0, 0); gl.uniform1f(U.uFade, 1); gl.uniform4f(U.uScal, 0, 0, 0, 0);
@@ -2353,7 +2320,9 @@
     if (h && h.name === 'cb_bottom' && Math.abs(h.v * UBC.D - (z.z0 + z.z1) / 2) < (z.z1 - z.z0) / 2 + 11 && h.u * UBC.W > z.x0 - 9 && h.u * UBC.W < z.x1 + 9) return true;
     var R = ubStripPts(); if (!R) return false;
     var c = ubPage(R.F), e2 = ubPage(R.C);
-    return Math.min(Math.hypot(c[0] - x, c[1] - y), Math.hypot(e2[0] - x, e2[1] - y)) < 32;
+    if (Math.min(Math.hypot(c[0] - x, c[1] - y), Math.hypot(e2[0] - x, e2[1] - y)) < 32) return true;
+    for (var ip = 0; ip < R.pts.length; ip++) { var qp = ubPage(R.pts[ip]); if (Math.hypot(qp[0] - x, qp[1] - y) < 24) return true; }      // (BE) the torn part stands off the box now: a finger on it anywhere takes the strip
+    return false;
   }
   function ubPress(ev) {
     if (!ready) return false;
