@@ -4169,7 +4169,15 @@
     '.ewr-say{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}' +
     '.ewr-hold .ew-bar,.ewr-hold .ewp-prog,.ewr-hold .ew-hint,.ewr-hold .ewp-hud,.ewr-hold .ewp-scan,.ewr-hold .ewp-zoom,.ewr-hold .ewp-card{opacity:0!important;pointer-events:none!important}.ew-bar,.ewp-prog,.ewp-card{transition:opacity .6s ease}' +
     '.ewr-stage .ewp-zoom{bottom:72px}.ewr-stage .ewp-scan{bottom:112px}.ewr-stage .ewp-card{background:rgba(252,239,233,.08);box-shadow:0 0 0 1px rgba(252,239,233,.22);color:' + BLUSH + '}.ewr-stage .ewp-card span{color:rgba(252,239,233,.62)}.ewr-stage .ewp-card.ewr-later{visibility:hidden}' +
-    '@media (prefers-reduced-motion: reduce){.ewr-lamp.hint,.ewr-tip.cta{animation:none}.ew-box canvas.ewr-words{transition:opacity .2s ease}}';
+    '@media (prefers-reduced-motion: reduce){.ewr-lamp.hint,.ewr-tip.cta{animation:none}.ew-box canvas.ewr-words{transition:opacity .2s ease}}' +
+    '.ewr-tz canvas[role="application"]{opacity:0!important}' +      // STEP 7C
+    '.ewr-pick{position:absolute;left:50%;top:calc(var(--ew-it,12px) + 2px);transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:3px;height:44px;padding:0 6px 0 15px;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.06) 46%,rgba(255,255,255,.11)),rgba(18,22,58,.5);' +
+    'box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px rgba(255,255,255,.16),0 10px 26px rgba(4,6,26,.34);-webkit-backdrop-filter:blur(16px) saturate(1.7);backdrop-filter:blur(16px) saturate(1.7);font:500 12px/1 ' + SANS + ';color:rgba(255,255,255,.82);white-space:nowrap;touch-action:manipulation}' +
+    '.ewr-pick[hidden]{display:none}.ewr-pick i{font-style:normal;margin-right:7px;letter-spacing:.02em}' +
+    '.ewr-pick button{width:32px;height:32px;border:0;border-radius:50%;margin:0;padding:0;background:transparent;color:#fff;font:600 13.5px/32px ' + SANS + ';cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}' +
+    '.ewr-pick button[data-n="0"]{width:auto;padding:0 10px;border-radius:16px;font-size:12px;font-weight:500;color:rgba(255,255,255,.78)}' +
+    '.ewr-pick button[aria-pressed="true"]{background:linear-gradient(180deg,#FFE4AC,#F3AC3D);color:#11324F;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 4px 12px rgba(243,172,61,.45)}' +
+    '.ewr-pick button:focus-visible{outline:2px solid #FCEFE9;outline-offset:2px}@media (max-width:480px){.ewr-pick{padding-left:6px}.ewr-pick i{display:none}}@media (max-width:380px){.ewr-pick{left:var(--ew-in,12px);transform:none}}';
   var st = el('style'); st.textContent = css; document.head.appendChild(st);
   var sky = el('div', 'ewr-sky'), shoot = el('i', 'ewr-shoot'), skyKey = '', grain = el('div', 'ewr-grain'), dim = el('div', 'ewr-dim'), back = el('div', 'ewr-back'), light = el('canvas', 'ewr-light'), words = el('canvas', 'ewr-words'), guard = el('div', 'ewr-guard'), skip = el('button', 'ewr-skip', '<span>Skip</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l6 6-6 6M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'), tip = el('div', 'ewr-tip'), ghost = el('div', 'ewr-ghost'), say = el('p', 'ewr-say');
   var LAMP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.2 19.8 9 11.2l5.2 3-4.6 7.2z" fill="currentColor"/><path d="M12.4 9.2l6.2-5.4M14.9 12.6l7-2.4M10.3 6.9l3.1-6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
@@ -4226,14 +4234,14 @@
     g.restore();
   }      // the cover's own line; the teaser's line (the brand's reveal line)
   function block(L) {                                    // the words as a block: "For <to>", "<from> sent you a gift" on one line or two, in the largest size that fits, and one line under it (on one line or two)
-    var pk = PEEK ? Math.round(Math.max(60, Math.min(92, 0.2 * L.sw, 0.13 * L.hs))) : 0, pg = pk ? Math.round(0.24 * pk) : 0;      // (AG7) the small picture above the words, and the room under it
-    var maxW = L.sw * 0.76, room = L.aBot - L.aTop - 44 - pk - pg, e = L.eSize, one = HEAD1, two = HEAD2, sub = true, ps = L.pSize, nl = 1;
+    var pk = PEEK && !BLK.nopeek ? Math.round(Math.max(60, Math.min(92, 0.2 * L.sw, 0.13 * L.hs))) : 0, pg = pk ? Math.round(0.24 * pk) : 0;      // (AG7) the small picture above the words, and the room under it
+    var maxW = L.sw * BLK.w, room = (BLK.room ? Math.min(L.aBot - L.aTop - 44, BLK.room) : L.aBot - L.aTop - 44) - pk - pg, e = L.eSize, one = HEAD1, two = HEAD2, sub = true, ps = L.pSize, nl = 1;
     function wide(t, f) { meas.font = f; return meas.measureText(t).width; }
     var w1 = Math.max(wide(LINE[0], '400 ' + ps + 'px ' + SERIF), wide(HOOK[0], '400 ' + ps + 'px ' + SERIF)); if (w1 > maxW) { if (ps * maxW / w1 >= 12.4) ps = ps * maxW / w1; else nl = 2; }      // the line under it: a little smaller, or on two lines
     function tall(n, h, withSub) { return e + 0.62 * h + n * 1.14 * h + (withSub ? 0.46 * h + ps + (nl - 1) * 1.36 * ps : 0); }
-    function fit(lines, withSub) { var h = L.hSize, w, i; for (;; h -= 1) { for (w = 0, i = 0; i < lines.length; i++) w = Math.max(w, wide(lines[i], '500 ' + h + 'px ' + SERIF)); if ((w <= maxW && tall(lines.length, h, withSub) <= room) || h <= 14) return h; } }
+    function fit(lines, withSub) { var h = Math.round(L.hSize * BLK.hs), w, i; for (;; h -= 1) { for (w = 0, i = 0; i < lines.length; i++) w = Math.max(w, wide(lines[i], '500 ' + h + 'px ' + SERIF)); if ((w <= maxW && tall(lines.length, h, withSub) <= room) || h <= 14) return h; } }
     var h1 = fit(one, true), h2 = fit(two, true); if (Math.max(h1, h2) < 22) { sub = false; h1 = fit(one, false); h2 = fit(two, false); }      // no room: the line under it is left out
-    var lines = h2 > h1 * 1.22 ? two : one, h = lines === two ? h2 : h1, T = tall(lines.length, h, sub) + pk + pg, y = Math.max(L.aTop + 22, L.mid - T / 2), eye = y + pk + pg + e, head = eye + 0.62 * h + 0.84 * h, last = head + (lines.length - 1) * 1.14 * h, i, wm = Math.max(pk + 24, wide(EYE, '600 ' + e + 'px ' + SANS) + 46);
+    var lines = h2 > h1 * 1.22 ? two : one, h = lines === two ? h2 : h1, T = tall(lines.length, h, sub) + pk + pg, y = BLK.hi === undefined ? Math.max(L.aTop + 22, L.mid - T / 2 + BLK.dy * L.hs) : Math.max(BLK.lo, Math.min(L.mid - T / 2 + BLK.dy * L.hs, BLK.hi - T)), eye = y + pk + pg + e, head = eye + 0.62 * h + 0.84 * h, last = head + (lines.length - 1) * 1.14 * h, i, wm = Math.max(pk + 24, wide(EYE, '600 ' + e + 'px ' + SANS) + 46);
     for (i = 0; i < lines.length; i++) wm = Math.max(wm, wide(lines[i], '500 ' + h + 'px ' + SERIF)); if (sub) wm = Math.max(wm, nl === 1 ? wide(HOOK[0], '400 ' + ps + 'px ' + SERIF) : Math.max(wide(HOOK[1], '400 ' + ps + 'px ' + SERIF), wide(LINE[2], '400 ' + ps + 'px ' + SERIF)));
     return { lines: lines, h: h, eye: eye, head: head, sub: sub ? last + 0.66 * h + ps : 0, nl: nl, ps: ps, top: y, bottom: (sub ? last + 0.66 * h + ps + (nl - 1) * 1.36 * ps : last + 0.3 * h) + 8, wmax: wm, peek: pk ? { s: pk, y: y + 2 } : null };
   }
@@ -4282,13 +4290,20 @@
     return c;
   }
   function setTeaser() {                                 // the teaser's own small canvas, exactly where the words will stand on the cover
-    var L = layout(), B = block(L), dpr = Math.min(2, window.devicePixelRatio || 1), y0 = Math.floor(B.top - 14), y1 = Math.ceil(B.bottom + 6);
-    TZ = { L: L, B: B, y0: y0, dpr: dpr }; words.width = Math.round(L.sw * dpr); words.height = Math.round((y1 - y0) * dpr);
-    words.style.left = L.x0 + 'px'; words.style.top = y0 + 'px'; words.style.width = L.sw + 'px'; words.style.height = (y1 - y0) + 'px';
+    var L = layout(), dpr = Math.min(2, window.devicePixelRatio || 1), B, y0, y1;
+    if (FSKIN > 0) {      // STEP 7C: one of the five designs; its picture is the whole stage
+      B = fsFit(L); TZ = { L: L, B: B, y0: 0, dpr: dpr, full: true }; words.width = Math.round(L.W * dpr); words.height = Math.round(L.H * dpr);
+      words.style.left = '0px'; words.style.top = '0px'; words.style.width = L.W + 'px'; words.style.height = L.H + 'px';
+    } else {
+      B = block(L); y0 = Math.floor(B.top - 14); y1 = Math.ceil(B.bottom + 6);
+      TZ = { L: L, B: B, y0: y0, dpr: dpr }; words.width = Math.round(L.sw * dpr); words.height = Math.round((y1 - y0) * dpr);
+      words.style.left = L.x0 + 'px'; words.style.top = y0 + 'px'; words.style.width = L.sw + 'px'; words.style.height = (y1 - y0) + 'px';
+    }
+    wrap.classList.toggle('ewr-tz', FSKIN > 0 && phase === 'teaser');      // (the unlit box stays out of sight behind a design)
     tell(EYE + '. ' + HEAD1[0] + '. ' + HOOK[0] + ' ' + OPEN + '.');
   }
   function drawTeaser(now) {
-    if (!TZ) return; var g = words.getContext('2d'), t = (now - t0) / 1000, a = reduce ? 1 : Math.max(0, Math.min(1, (t - 0.15) / 0.7)), b = reduce ? 1 : Math.max(0, Math.min(1, (t - 0.55) / 0.8)), d = reduce ? 1 : Math.max(0, Math.min(1, (t - 1.25) / 0.8));
+    if (!TZ) return; if (TZ.full) return drawFirst(now); var g = words.getContext('2d'), t = (now - t0) / 1000, a = reduce ? 1 : Math.max(0, Math.min(1, (t - 0.15) / 0.7)), b = reduce ? 1 : Math.max(0, Math.min(1, (t - 0.55) / 0.8)), d = reduce ? 1 : Math.max(0, Math.min(1, (t - 1.25) / 0.8));
     a = a * a * (3 - 2 * a); b = b * b * (3 - 2 * b); d = d * d * (3 - 2 * d);
     g.setTransform(TZ.dpr, 0, 0, TZ.dpr, 0, 0); g.clearRect(0, 0, TZ.L.sw, words.height / TZ.dpr);
     drawWords(g, TZ.L, TZ.B, TZ.L.x0, TZ.y0 + (1 - a) * 8, { eye: GOLD, star: GOLD }, a, 0, 0, HOOK);
@@ -4296,6 +4311,213 @@
     drawWords(g, TZ.L, TZ.B, TZ.L.x0, TZ.y0 + (1 - d) * 8, { sub: 'rgba(252,239,233,.9)' }, 0, 0, d, HOOK);
     return d < 1;
   }
+
+  /* ---------- STEP 7C (Tomas, 15 November 01:21: "give me 5 way better very first screen options overlay design, ultra best. for me to choose
+     and then you will apply one of them"): five designs of the very first screen. Each is drawn on the teaser's own canvas, which then covers the
+     whole stage; the unlit box stays out of sight until the cover is down.
+       1 the stage light    2 the gift tag    3 glass    4 the seal    5 the marquee        (0: the first screen as it was)
+     Which one shows: EW_REVEAL.first, or first=N in the address (after ? or #), or the small switch on the screen while he chooses
+     (EW_REVEAL.pick = false or pick=0 takes the switch away). ---------- */
+  var FSKIN = 1, FPICK = OPT.pick !== false && Q.pick !== '0', pickHold = false, BLK0 = { w: 0.76, dy: 0, hs: 1, nopeek: false }, BLK = BLK0;
+  var FSB = [BLK0, { w: 0.82, dy: 0.04, hs: 1.08 }, { w: 0.66, dy: 0.05, hs: 0.96, wm: function (sw) { return 0.92 - 2 * Math.max(24, 0.085 * sw) / sw; } }, { w: 0.7, dy: 0.07, hs: 1, wm: function (sw) { return 0.9 - 2 * Math.max(22, 0.07 * sw) / sw; } }, { w: 0.82, dy: -0.1, hs: 0.96, nopeek: true }, { w: 0.66, dy: 0.03, hs: 0.98, wm: function (sw) { return 0.94 - 2 * Math.max(28, 0.1 * sw) / sw; } }];      // how wide the words may be, how far the block stands from the cover's own place (in cover heights), how large the headline may be
+  (function () { var n = OPT.first, m = /(?:^|[?#&])first=(\d)/.exec((window.location.hash || '').replace(/^#/, '?')); if (Q.first !== undefined) n = +Q.first; if (m) n = +m[1];
+    if (n === undefined) { try { var sv = window.localStorage.getItem('ewr-first'); if (sv !== null && sv !== '') n = +sv; } catch (e) {} } if (n >= 0 && n <= 5) FSKIN = n | 0; })();
+  var FBAND = [14, 1e5], FV = { s: 1, c0: 0, c1: 0, x0: 0, y0: 0, x1: 0, y1: 0 };      // the free room of this screen from its upper edge down; and how a design is set into it (its size, where its middle stands, the stage's edges in the design's own measures)
+  function fsBand(L) {      // the room a design may take: under the sound coin (or the switch), above the gold button and its ring
+    var o = box.getBoundingClientRect(), c = (L.x0 + L.x1) / 2, bt = 14, bb = L.H - 124, r, e, h;
+    try { e = document.getElementById('ewp-snd'); r = e && e.getBoundingClientRect(); if (r && r.width > 0 && r.left - o.left - 12 < c + 0.47 * L.sw) bt = Math.max(bt, r.bottom - o.top + 10); } catch (x) {}
+    if (FPICK && pick) try { h = pick.hidden; pick.hidden = false; r = pick.getBoundingClientRect(); pick.hidden = h; if (r.width > 0) bt = Math.max(bt, r.bottom - o.top + 10); } catch (x) {}
+    try { h = tip.classList.contains('cta'); if (!tip.textContent) tip.textContent = OPEN; tip.classList.add('cta'); r = tip.getBoundingClientRect(); if (!h) tip.classList.remove('cta'); if (r.height > 0) bb = r.top - o.top - 18; } catch (x) {}
+    return [bt, Math.max(bt + 96, bb)];
+  }
+  function fsFit(L) {      // the words of the chosen design, set so that the whole design stands in the free room
+    var F = FSB[FSKIN], D = FSD[FSKIN], band = fsBand(L), have = band[1] - band[0], cx = (L.x0 + L.x1) / 2, B, fr, need, extra, up, s = 1, c0, c1, np = !!F.nopeek, k, w = F.wm && L.sw < 320 ? Math.max(F.w, F.wm(L.sw)) : F.w;      // (on the narrowest phones the words may run as wide as the frame lets them: a long name keeps its second line)
+    FBAND = band;
+    for (k = 0; k < 2; k++) {
+      BLK = { w: w, dy: F.dy, hs: F.hs, nopeek: np }; B = block(L); fr = D(null, L, B, 0, true); need = fr[1] - fr[0];
+      if (need > have || fr[0] < band[0] || fr[1] > band[1]) {      // it does not stand there as it is: the words get the room that is left, and their place inside it
+        extra = need - (B.bottom - B.top); up = B.top - fr[0];
+        BLK = { w: w, dy: F.dy, hs: F.hs, nopeek: np, room: Math.max(have - extra, FSC[FSKIN] ? 96 + (PEEK && !np ? 76 : 0) : 0), lo: band[0] + up, hi: band[1] - (extra - up) };
+        B = block(L); fr = D(null, L, B, 0, true); need = fr[1] - fr[0];
+      }
+      if (!FSC[FSKIN] || !PEEK || np || have / need >= 0.85) break;
+      np = true;      // a low screen: a design with a frame stands there without the small picture of what comes with the gift, so that its words stay large enough to read
+    }
+    BLK = BLK0; c0 = c1 = (fr[0] + fr[1]) / 2;
+    if (FSC[FSKIN]) { s = Math.max(0.6, Math.min(1, have / need)); c1 = Math.max(band[0] + s * need / 2, Math.min(c0, band[1] - s * need / 2)); }      // a design with a frame: the whole of it a little smaller, and moved into the room
+    FV = { s: s, c0: c0, c1: c1, x0: cx - cx / s, x1: cx + (L.W - cx) / s, y0: c0 - c1 / s, y1: c0 + (L.H - c1) / s };
+    return B;
+  }
+  function sm(x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); }
+  function eob(x) { x = x < 0 ? 0 : x > 1 ? 1 : x; var c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); }      // eases out with a small overshoot
+  function rnd32(seed) { var q = seed; return function () { q = (q * 16807) % 2147483647; return q / 2147483647; }; }
+  function caps(g, t, cx, y, sp, dry) {      // capitals set a little apart, centred on cx; returns their width
+    var i, w = 0, ws = []; t = String(t).toUpperCase(); for (i = 0; i < t.length; i++) { ws.push(g.measureText(t.charAt(i)).width); w += ws[i] + (i ? sp : 0); }
+    if (dry) return w; var x = cx - w / 2, al = g.textAlign; g.textAlign = 'left'; for (i = 0; i < t.length; i++) { g.fillText(t.charAt(i), x, y); x += ws[i] + sp; } g.textAlign = al; return w;
+  }
+  function perim(x, y, w, h, r, d) {      // the point d along a rounded rectangle, clockwise from the left end of its upper side
+    var s1 = w - 2 * r, s2 = h - 2 * r, q = 1.5708 * r, a;
+    if (d < s1) return [x + r + d, y]; d -= s1;
+    if (d < q) { a = -1.5708 + d / r; return [x + w - r + r * Math.cos(a), y + r + r * Math.sin(a)]; } d -= q;
+    if (d < s2) return [x + w, y + r + d]; d -= s2;
+    if (d < q) { a = d / r; return [x + w - r + r * Math.cos(a), y + h - r + r * Math.sin(a)]; } d -= q;
+    if (d < s1) return [x + w - r - d, y + h]; d -= s1;
+    if (d < q) { a = 1.5708 + d / r; return [x + r + r * Math.cos(a), y + h - r + r * Math.sin(a)]; } d -= q;
+    if (d < s2) return [x, y + h - r - d]; d -= s2;
+    a = 3.1416 + Math.min(d, q) / r; return [x + r + r * Math.cos(a), y + r + r * Math.sin(a)];
+  }
+  function fsWords(g, L, B, o) {      // the words in a design's own colours. o: eye, star, head, sub, glow; a: how far each of the three has come in; up: how far each still has to rise; caps, noEye, noPeek
+    var cx = (L.x0 + L.x1) / 2, i, w, a = o.a, up = o.up || [0, 0, 0], sub = HOOK;
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    if (B.peek && !o.noPeek) drawPeek(g, cx, B.peek.y + up[0], B.peek.s, a[0]);
+    if (!o.noEye && a[0] > 0) { g.globalAlpha = a[0]; g.font = '600 ' + L.eSize + 'px ' + SANS; g.fillStyle = o.eye;
+      if (o.caps) w = caps(g, EYE, cx, B.eye + up[0], 0.14 * L.eSize) / 2 + 15; else { g.fillText(EYE, cx, B.eye + up[0]); w = g.measureText(EYE).width / 2 + 15; }
+      g.fillStyle = o.star; star(g, cx - w, B.eye + up[0] - L.eSize * 0.34, 4.6); star(g, cx + w, B.eye + up[0] - L.eSize * 0.34, 4.6); }
+    if (a[1] > 0) { g.globalAlpha = a[1]; g.font = '500 ' + B.h + 'px ' + SERIF; g.fillStyle = o.head; if (o.glow) { g.shadowColor = o.glow; g.shadowBlur = 0.5 * B.h; }
+      for (i = 0; i < B.lines.length; i++) g.fillText(B.lines[i], cx, B.head + i * 1.14 * B.h + up[1]); g.shadowColor = 'transparent'; g.shadowBlur = 0; }
+    if (a[2] > 0 && B.sub) { g.globalAlpha = a[2]; g.font = '400 ' + B.ps + 'px ' + SERIF; g.fillStyle = o.sub;
+      if (B.nl === 1) g.fillText(sub[0], cx, B.sub + up[2]); else { g.fillText(sub[1], cx, B.sub + up[2]); g.fillText(sub[2], cx, B.sub + up[2] + 1.36 * B.ps); } }
+    g.globalAlpha = 1;
+  }
+
+  /* 1 THE STAGE LIGHT: the house goes dark, one warm light comes down from above, the words stand in it; dust drifts in the light */
+  function fsLight(g, L, B, t, dry) {
+    if (dry) return [B.peek ? B.top - 4 : B.eye - L.eSize - Math.max(24, 0.56 * B.h) - 1.4 * Math.max(9, 0.21 * B.h), B.bottom + 2];
+    var W = L.W, H = L.H, cx = (L.x0 + L.x1) / 2, a0 = reduce ? 1 : sm(t / 1.0), y0 = -0.05 * H, fy = Math.min(H - 148, B.bottom + Math.max(60, 0.095 * L.hs)), rw = Math.max(120, Math.min(0.62 * L.sw, 330)), i, k;
+    var vg = g.createRadialGradient(cx, 0.46 * H, 0.18 * Math.min(W, H), cx, 0.46 * H, 0.9 * Math.max(W, H)); vg.addColorStop(0, 'rgba(4,6,22,0)'); vg.addColorStop(1, 'rgba(4,6,22,' + (0.66 * a0).toFixed(3) + ')'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+    for (i = 0; i < 18; i++) { k = 1.4 - 0.055 * i;      // the cone: eighteen sheets of light, each a little narrower, so its sides are soft; it thins out towards the floor
+      var cg = g.createLinearGradient(0, y0, 0, fy); cg.addColorStop(0, 'rgba(255,230,180,' + (0.0225 * a0).toFixed(4) + ')'); cg.addColorStop(0.55, 'rgba(255,218,160,' + (0.0105 * a0).toFixed(4) + ')'); cg.addColorStop(0.9, 'rgba(255,210,150,' + (0.003 * a0).toFixed(4) + ')'); cg.addColorStop(1, 'rgba(255,210,150,0)');
+      g.fillStyle = cg; g.beginPath(); g.moveTo(cx - 0.05 * rw * k, y0); g.lineTo(cx + 0.05 * rw * k, y0); g.lineTo(cx + rw * k, fy); g.lineTo(cx - rw * k, fy); g.closePath(); g.fill(); }
+    g.save(); g.translate(cx, fy); g.scale(1, 0.17); var pg = g.createRadialGradient(0, 0, 0, 0, 0, 1.12 * rw); pg.addColorStop(0, 'rgba(255,224,164,' + (0.46 * a0).toFixed(3) + ')'); pg.addColorStop(0.45, 'rgba(255,208,142,' + (0.2 * a0).toFixed(3) + ')'); pg.addColorStop(1, 'rgba(255,200,130,0)');
+    g.fillStyle = pg; g.beginPath(); g.arc(0, 0, 1.12 * rw, 0, 6.2832); g.fill(); g.restore();      // the pool of light on the floor
+    var r = rnd32(77);
+    for (i = 0; i < 36; i++) { var u = 2 * r() - 1, v0 = r(), sp = 0.012 + 0.02 * r(), ph = 6.28 * r(), sz = 0.7 + 1.1 * r(), v = (v0 + (reduce ? 0 : sp * t)) % 1, yy = y0 + (1 - v) * (fy - y0), half = (0.05 + 0.95 * (yy - y0) / (fy - y0)) * rw, xx = cx + u * half * 0.92 + (reduce ? 0 : 5 * Math.sin(0.6 * t + ph));
+      g.fillStyle = 'rgba(255,236,196,' + (a0 * (0.1 + 0.36 * Math.pow(Math.sin(0.9 * t + ph), 2))).toFixed(3) + ')'; g.beginPath(); g.arc(xx, yy, sz, 0, 6.2832); g.fill(); }      // dust in the light
+    var a1 = reduce ? 1 : sm((t - 0.45) / 0.7), a2 = reduce ? 1 : sm((t - 0.8) / 0.8), a3 = reduce ? 1 : sm((t - 1.35) / 0.8);
+    if (!B.peek) { var sy = B.eye - L.eSize - Math.max(24, 0.56 * B.h), sr = Math.max(9, 0.21 * B.h) * (1 + (reduce ? 0 : 0.08 * Math.sin(2.2 * t)));      // the brand's star over the words, breathing
+      g.globalAlpha = a1; var sg = g.createRadialGradient(cx, sy, 0, cx, sy, 3.6 * sr); sg.addColorStop(0, 'rgba(255,214,140,.5)'); sg.addColorStop(1, 'rgba(255,214,140,0)'); g.fillStyle = sg; g.beginPath(); g.arc(cx, sy, 3.6 * sr, 0, 6.2832); g.fill(); g.fillStyle = '#FFD98A'; star(g, cx, sy, sr); g.globalAlpha = 1; }
+    fsWords(g, L, B, { eye: '#FFD98A', star: GOLD, head: '#FFF6E8', sub: 'rgba(255,240,222,.9)', glow: 'rgba(255,206,130,.45)', a: [a1, a2, a3], up: [(1 - a1) * 10, (1 - a2) * 12, (1 - a3) * 9], caps: true });
+  }
+
+  /* 2 THE GIFT TAG: a cream tag on a gold thread drops in from above and swings out; the words stand on it in navy */
+  function tagPath(g, x, y, w, h, c, r) { g.beginPath(); g.moveTo(x + c, y); g.lineTo(x + w - c, y); g.lineTo(x + w, y + c); g.lineTo(x + w, y + h - r); g.arcTo(x + w, y + h, x + w - r, y + h, r); g.lineTo(x + r, y + h); g.arcTo(x, y + h, x, y + h - r, r); g.lineTo(x, y + c); g.closePath(); }
+  function fsTag(g, L, B, t, dry) {
+    var cx = (L.x0 + L.x1) / 2, A = FV.y0, padX = L.sw < 320 ? Math.max(24, 0.085 * L.sw) : Math.max(30, 0.1 * L.sw), padT = Math.max(60, Math.min(84, 0.17 * L.sw)), padB = Math.max(28, 0.08 * L.sw), tw = Math.min(0.92 * L.sw, Math.max(B.wmax + 2 * padX, 0.75 * L.sw)), th = B.bottom - B.top + padT + padB, x = cx - tw / 2, y = B.top - padT, c = Math.min(36, 0.115 * tw), hy = y + 0.44 * padT, i;
+    if (dry) return [y - 3, y + th + 0.02 * tw + 8];
+    var swing = reduce ? 0 : 0.2 * Math.exp(-t / 0.6) * Math.cos(5 * t) + 0.011 * Math.sin(1.05 * t), drop = reduce ? 0 : (1 - eob(t / 0.75)) * -(y - A + th + 60);
+    g.save(); g.translate(cx, A - 40 + drop); g.rotate(swing); g.translate(-cx, 40 - A);      // it hangs from above the screen
+    g.lineCap = 'round'; g.lineWidth = 1.7; g.strokeStyle = '#E9B24C'; g.beginPath(); g.moveTo(cx - 4, A - 40); g.quadraticCurveTo(cx - 10, A + 0.5 * (hy - A), cx - 1.5, hy - 2); g.stroke();      // two strands of gold thread
+    g.strokeStyle = '#C98A22'; g.beginPath(); g.moveTo(cx + 5, A - 40); g.quadraticCurveTo(cx + 11, A + 0.55 * (hy - A), cx + 1.5, hy - 2); g.stroke();
+    g.translate(cx, hy); g.rotate(-0.04); g.translate(-cx, -hy);      // the tag itself, turned a little on its thread
+    g.save(); g.shadowColor = 'rgba(0,0,0,.5)'; g.shadowBlur = 34; g.shadowOffsetY = 16; g.fillStyle = '#F6E8D8'; tagPath(g, x, y, tw, th, c, 18); g.fill(); g.restore();
+    var pg = g.createLinearGradient(0, y, 0, y + th); pg.addColorStop(0, '#FFF9F0'); pg.addColorStop(0.55, '#FBEFE2'); pg.addColorStop(1, '#F3E2CF'); g.fillStyle = pg; tagPath(g, x, y, tw, th, c, 18); g.fill();
+    g.save(); tagPath(g, x, y, tw, th, c, 18); g.clip(); var r = rnd32(4711), n = Math.round(tw * th / 46); for (i = 0; i < n; i++) { g.fillStyle = r() < 0.5 ? 'rgba(150,110,70,.045)' : 'rgba(255,255,255,.08)'; g.fillRect(x + r() * tw, y + r() * th, 1.2, 1.2); }      // the grain of the paper
+    var eg = g.createLinearGradient(x, 0, x + tw, 0); eg.addColorStop(0, 'rgba(120,84,40,.11)'); eg.addColorStop(0.08, 'rgba(120,84,40,0)'); eg.addColorStop(0.92, 'rgba(120,84,40,0)'); eg.addColorStop(1, 'rgba(120,84,40,.13)'); g.fillStyle = eg; g.fillRect(x, y, tw, th); g.restore();
+    g.strokeStyle = '#D9A548'; g.lineWidth = 1.3; tagPath(g, x + 9, y + 9, tw - 18, th - 18, c - 4, 11); g.stroke();      // a gold line inside the edge, and a finer one inside that
+    g.strokeStyle = 'rgba(217,165,72,.5)'; g.lineWidth = 0.8; tagPath(g, x + 13, y + 13, tw - 26, th - 26, c - 6, 8); g.stroke();
+    var rg = g.createLinearGradient(cx - 12, hy - 12, cx + 12, hy + 12); rg.addColorStop(0, '#FFE6A6'); rg.addColorStop(0.5, '#E9B24C'); rg.addColorStop(1, '#B67A1B');      // the eyelet
+    g.fillStyle = rg; g.beginPath(); g.arc(cx, hy, 11.5, 0, 6.2832); g.fill(); g.fillStyle = '#0A0E2A'; g.beginPath(); g.arc(cx, hy, 5.6, 0, 6.2832); g.fill(); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, hy, 10.4, 3.6, 5.2); g.stroke();
+    g.strokeStyle = '#E9B24C'; g.lineWidth = 1.7; g.beginPath(); g.moveTo(cx - 1.5, hy - 3); g.lineTo(cx - 0.4, hy + 3); g.stroke();
+    fsWords(g, L, B, { eye: '#A8721C', star: '#D9A548', head: NAVY, sub: 'rgba(17,50,79,.84)', a: [1, 1, 1], caps: true });
+    if (B.sub) { var ry = B.head + (B.lines.length - 1) * 1.14 * B.h + 0.45 * B.h + 0.14 * B.ps; g.fillStyle = '#D9A548'; g.fillRect(cx - 34, ry, 24, 1.2); g.fillRect(cx + 10, ry, 24, 1.2); star(g, cx, ry + 0.6, 3.8); }      // a small gold rule with the star between the two lines
+    g.restore();
+  }
+
+  /* 3 GLASS: a sheet of frosted glass in the look of the buttons, with slow light behind it */
+  function fsGlass(g, L, B, t, dry) {
+    var W = L.W, H = L.H, cx = (L.x0 + L.x1) / 2, padX = Math.max(22, 0.07 * L.sw), em = B.peek ? 0 : Math.max(56, Math.min(76, 0.17 * L.sw)), pad = Math.max(26, 0.075 * L.sw), padT = pad + em, padB = Math.max(26, 0.075 * L.sw), cw = Math.min(0.9 * L.sw, Math.max(B.wmax + 2 * padX, 0.76 * L.sw)), ch = B.bottom - B.top + padT + padB, x = cx - cw / 2, y = B.top - padT, rr = Math.min(38, 0.12 * cw), a0 = reduce ? 1 : sm(t / 0.7), sc = reduce ? 1 : 0.9 + 0.1 * eob(t / 0.8), i;
+    if (dry) return [y - 2, y + ch + 8];
+    var blobs = [[cx - 0.34 * cw, y + 0.14 * ch, 0.62 * cw, '255,190,84', 0.46, 0.31, 0], [cx + 0.4 * cw, y + 0.86 * ch, 0.7 * cw, '255,104,112', 0.4, 0.27, 2.1], [cx + 0.14 * cw, y + 0.44 * ch, 0.86 * cw, '116,104,255', 0.36, 0.2, 4.2]];
+    for (i = 0; i < blobs.length; i++) { var b = blobs[i], bx = b[0] + (reduce ? 0 : 0.08 * cw * Math.sin(b[5] * t * 2 + b[6])), by = b[1] + (reduce ? 0 : 0.05 * ch * Math.cos(b[5] * t * 2.3 + b[6])), bg = g.createRadialGradient(bx, by, 0, bx, by, b[2]);
+      bg.addColorStop(0, 'rgba(' + b[3] + ',' + (b[4] * a0).toFixed(3) + ')'); bg.addColorStop(0.5, 'rgba(' + b[3] + ',' + (0.32 * b[4] * a0).toFixed(3) + ')'); bg.addColorStop(1, 'rgba(' + b[3] + ',0)'); g.fillStyle = bg; g.fillRect(FV.x0, FV.y0, FV.x1 - FV.x0, FV.y1 - FV.y0); }      // light behind the glass: gold, coral, violet, drifting
+    g.save(); g.globalAlpha = a0; g.translate(cx, y + ch / 2); g.scale(sc, sc); g.translate(-cx, -(y + ch / 2));
+    g.save(); g.shadowColor = 'rgba(3,5,22,.55)'; g.shadowBlur = 44; g.shadowOffsetY = 20; g.fillStyle = 'rgba(22,26,70,.44)'; rrect(g, x, y, cw, ch, rr); g.fill(); g.restore();      // the sheet: a tinted body, a light that runs down it, a bright rim
+    var gg = g.createLinearGradient(0, y, 0, y + ch); gg.addColorStop(0, 'rgba(255,255,255,.27)'); gg.addColorStop(0.4, 'rgba(255,255,255,.09)'); gg.addColorStop(1, 'rgba(255,255,255,.15)'); g.fillStyle = gg; rrect(g, x, y, cw, ch, rr); g.fill();
+    g.save(); rrect(g, x, y, cw, ch, rr); g.clip(); var sx = x - 0.5 * cw + (reduce ? 0.6 : ((0.11 * t) % 1.7)) * cw * 1.3, sg = g.createLinearGradient(sx, y, sx + 0.5 * cw, y + 0.5 * cw); sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.5, 'rgba(255,255,255,.11)'); sg.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = sg; g.fillRect(x, y, cw, ch); g.restore();      // a slow sheen across it
+    g.strokeStyle = 'rgba(255,255,255,.2)'; g.lineWidth = 1; rrect(g, x + 0.5, y + 0.5, cw - 1, ch - 1, rr); g.stroke();
+    var tg = g.createLinearGradient(0, y, 0, y + 0.3 * ch); tg.addColorStop(0, 'rgba(255,255,255,.78)'); tg.addColorStop(1, 'rgba(255,255,255,0)'); g.strokeStyle = tg; g.lineWidth = 1.4; rrect(g, x + 1, y + 1, cw - 2, ch - 2, rr - 1); g.stroke();
+    if (!B.peek) { var by2 = y + pad + em / 2 - 5, br = Math.min(27, 0.42 * em), bd = g.createRadialGradient(cx - 0.3 * br, by2 - 0.4 * br, 1, cx, by2, br);      // a bead of gold glass with the brand's star
+      bd.addColorStop(0, 'rgba(255,238,196,.98)'); bd.addColorStop(0.55, 'rgba(243,172,61,.94)'); bd.addColorStop(1, 'rgba(196,128,30,.92)'); g.save(); g.shadowColor = 'rgba(243,172,61,.55)'; g.shadowBlur = 22; g.fillStyle = bd; g.beginPath(); g.arc(cx, by2, br, 0, 6.2832); g.fill(); g.restore();
+      g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1; g.beginPath(); g.arc(cx, by2, br - 0.6, 3.5, 5.6); g.stroke(); g.fillStyle = '#FFFDF6'; star(g, cx, by2, 0.52 * br); }
+    g.font = '600 ' + L.eSize + 'px ' + SANS; var ew = g.measureText(EYE).width + 36, eh = L.eSize + 16, ex = cx - ew / 2, ey = B.eye - 0.36 * L.eSize;      // the name on a small chip of glass
+    g.fillStyle = 'rgba(255,255,255,.14)'; rrect(g, ex, ey - eh / 2, ew, eh, eh / 2); g.fill(); g.strokeStyle = 'rgba(255,255,255,.3)'; g.lineWidth = 1; rrect(g, ex + 0.5, ey - eh / 2 + 0.5, ew - 1, eh - 1, eh / 2 - 0.5); g.stroke();
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillStyle = '#FFE6B0'; g.fillText(EYE, cx, B.eye);
+    fsWords(g, L, B, { noEye: true, head: '#FFFFFF', sub: 'rgba(255,255,255,.88)', glow: 'rgba(8,10,40,.4)', a: [1, 1, 1] });
+    g.restore();
+  }
+
+  /* 4 THE SEAL: the words above, under them a cream envelope closed with a gold wax seal that is pressed on and then asks to be tapped */
+  function fsSeal(g, L, B, t, dry) {
+    var H = L.H, cx = (L.x0 + L.x1) / 2, ps = PEEK ? 1 : 0, ew = Math.min(0.8 * L.sw, 310), eh = 0.64 * ew, gap = Math.max(30, 0.045 * L.hs) + ps * 0.2 * ew, room = Math.min(L.bot - 30, FBAND[1]) - (B.bottom + gap), i;
+    if (dry) return [B.top - 2, B.bottom + 2];
+    if (room < eh) { eh = Math.max(0, room); ew = eh / 0.64; }
+    var a1 = reduce ? 1 : sm((t - 0.1) / 0.6), a2 = reduce ? 1 : sm((t - 0.35) / 0.75), a3 = reduce ? 1 : sm((t - 0.9) / 0.7);
+    fsWords(g, L, B, { eye: '#FFD98A', star: GOLD, head: '#FFF6E8', sub: 'rgba(255,240,222,.9)', glow: 'rgba(255,206,130,.3)', a: [a1, a2, a3], up: [(1 - a1) * 8, (1 - a2) * 10, (1 - a3) * 8], caps: true, noPeek: true });
+    if (eh < 74) return;      // (a very low screen: the words alone)
+    var a0 = reduce ? 1 : sm((t - 0.25) / 0.7), x = cx - ew / 2, y = B.bottom + gap + (reduce ? 0 : (1 - eob((t - 0.2) / 0.8)) * 46), ty = y + 0.6 * eh;
+    g.save(); g.globalAlpha = a0; g.translate(cx, y + eh / 2); g.rotate(-0.03); g.translate(-cx, -(y + eh / 2));      // it lies a little askew
+    if (ps) { var pz = Math.round(0.3 * ew); g.save(); g.translate(cx + 0.2 * ew, y + 0.03 * eh); g.rotate(0.12); drawPeek(g, 0, -0.66 * pz, pz, a0); g.restore(); g.globalAlpha = a0; }      // what comes with the gift looks out of the envelope
+    g.save(); g.shadowColor = 'rgba(0,0,0,.5)'; g.shadowBlur = 36; g.shadowOffsetY = 18; g.fillStyle = '#F4E4D2'; rrect(g, x, y, ew, eh, 10); g.fill(); g.restore();
+    var bg = g.createLinearGradient(0, y, 0, y + eh); bg.addColorStop(0, '#FBEFE1'); bg.addColorStop(1, '#F0DCC6'); g.fillStyle = bg; rrect(g, x, y, ew, eh, 10); g.fill();
+    g.save(); rrect(g, x, y, ew, eh, 10); g.clip(); var rq = rnd32(911), nq = Math.round(ew * eh / 52); for (i = 0; i < nq; i++) { g.fillStyle = rq() < 0.5 ? 'rgba(150,110,70,.04)' : 'rgba(255,255,255,.08)'; g.fillRect(x + rq() * ew, y + rq() * eh, 1.2, 1.2); } g.restore();      // the grain of the paper
+    g.strokeStyle = 'rgba(140,100,60,.22)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x + 5, y + eh - 4); g.lineTo(cx, y + 0.52 * eh); g.lineTo(x + ew - 5, y + eh - 4); g.stroke();      // the two lower folds
+    g.save(); g.shadowColor = 'rgba(90,60,30,.36)'; g.shadowBlur = 10; g.shadowOffsetY = 4; var fg = g.createLinearGradient(0, y, 0, ty); fg.addColorStop(0, '#FFFAF3'); fg.addColorStop(1, '#F7E9D8'); g.fillStyle = fg;      // the flap, closed
+    g.beginPath(); g.moveTo(x + 10, y); g.lineTo(x + ew - 10, y); g.arcTo(x + ew, y, x + ew, y + 10, 10); g.lineTo(cx + 13, ty - 9); g.quadraticCurveTo(cx, ty, cx - 13, ty - 9); g.lineTo(x, y + 10); g.arcTo(x, y, x + 10, y, 10); g.closePath(); g.fill(); g.restore();
+    g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x + 10, y + 0.7); g.lineTo(x + ew - 10, y + 0.7); g.stroke();
+    var st = reduce ? 1 : Math.max(0, Math.min(1, (t - 0.95) / 0.42)), ss = reduce ? 1 : (st <= 0 ? 0 : 1.55 - 0.55 * eob(st)), rs = Math.max(22, 0.105 * ew), sy = ty - 5;      // the seal: pressed on, a moment after the envelope has come
+    if (ss > 0) {
+      if (!reduce && t > 1.7) { var pr = ((t - 1.7) % 1.9) / 1.9; g.strokeStyle = 'rgba(255,214,140,' + (0.55 * (1 - pr)).toFixed(3) + ')'; g.lineWidth = 2; g.beginPath(); g.arc(cx, sy, rs * (1.12 + 1.1 * pr), 0, 6.2832); g.stroke(); }      // it asks to be tapped
+      g.save(); g.globalAlpha = a0 * (reduce ? 1 : sm(st * 2.4)); g.translate(cx, sy); g.scale(ss, ss);
+      g.shadowColor = 'rgba(70,36,4,.5)'; g.shadowBlur = 12; g.shadowOffsetY = 4; g.beginPath(); for (i = 0; i <= 72; i++) { var an = i / 72 * 6.2832, r2 = rs * (1 + 0.045 * Math.sin(9 * an + 0.7) + 0.02 * Math.sin(4 * an + 2)); g[i ? 'lineTo' : 'moveTo'](Math.cos(an) * r2, Math.sin(an) * r2); } g.closePath();
+      var wg = g.createRadialGradient(-0.3 * rs, -0.35 * rs, 1, 0, 0, 1.08 * rs); wg.addColorStop(0, '#FFE9AE'); wg.addColorStop(0.45, '#EDB046'); wg.addColorStop(1, '#B3761A'); g.fillStyle = wg; g.fill(); g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetY = 0;
+      g.strokeStyle = 'rgba(120,72,10,.42)'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, 0.74 * rs, 0, 6.2832); g.stroke(); g.strokeStyle = 'rgba(255,244,210,.65)'; g.lineWidth = 1; g.beginPath(); g.arc(0, 0, 0.7 * rs, 3.3, 5.3); g.stroke();
+      g.fillStyle = 'rgba(255,246,214,.85)'; star(g, -0.8, -0.8, 0.44 * rs); g.fillStyle = '#A86C14'; star(g, 0.9, 0.9, 0.44 * rs); g.fillStyle = '#D9992E'; star(g, 0, 0, 0.44 * rs);      // the star pressed into the wax
+      g.restore();
+      if (!reduce && st >= 1) { var rk = rnd32(31); for (i = 0; i < 7; i++) { var ka = 6.2832 * rk(), kd = rs * (1.5 + 1.5 * rk()), kp = 6.2832 * rk(), kb = Math.pow(Math.max(0, Math.sin(1.7 * t + kp)), 3); g.globalAlpha = a0 * kb; g.fillStyle = '#FFE2A0'; star(g, cx + Math.cos(ka) * kd, sy + Math.sin(ka) * kd * 0.8, 2.2 + 2.6 * rk()); } g.globalAlpha = a0; }      // small sparks round it
+    }
+    g.restore();
+  }
+
+  /* 5 THE MARQUEE: a theatre board with a gold frame and small warm lamps that light one after another and then run slowly; the name on a gold ribbon */
+  function fsMarquee(g, L, B, t, dry) {
+    // (pd: with the small picture of what comes with the gift, that picture stands a little lower here: the name is on the ribbon, not under the picture)
+    var cx = (L.x0 + L.x1) / 2, padX = L.sw < 320 ? Math.max(28, 0.1 * L.sw) : Math.max(34, 0.1 * L.sw), padB = Math.max(32, 0.095 * L.sw), pd = B.peek ? Math.round(0.6 * L.eSize + 3) : 0, top = B.peek ? B.peek.y - 32 + pd : B.eye - L.eSize - 8, fw = Math.min(0.94 * L.sw, Math.max(B.wmax + 2 * padX, 0.8 * L.sw)), fh = B.bottom + padB - top, x = cx - fw / 2, y = top, rr = Math.min(26, 0.085 * fw), a0 = reduce ? 1 : sm(t / 0.6), i;
+    if (dry) return [y - (L.eSize + 18) / 2 - 3, y + fh + 6];
+    g.save(); g.globalAlpha = a0;
+    g.save(); g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 40; g.shadowOffsetY = 16; g.fillStyle = '#0D1238'; rrect(g, x, y, fw, fh, rr); g.fill(); g.restore();
+    var pg = g.createLinearGradient(0, y, 0, y + fh); pg.addColorStop(0, '#1B2364'); pg.addColorStop(0.5, '#121848'); pg.addColorStop(1, '#0B0F32'); g.fillStyle = pg; rrect(g, x, y, fw, fh, rr); g.fill();
+    g.save(); rrect(g, x, y, fw, fh, rr); g.clip(); var hg = g.createRadialGradient(cx, y + 0.42 * fh, 0, cx, y + 0.42 * fh, 0.62 * fw); hg.addColorStop(0, 'rgba(255,206,130,.17)'); hg.addColorStop(1, 'rgba(255,206,130,0)'); g.fillStyle = hg; g.fillRect(x, y, fw, fh); g.restore();      // the lamps warm the board
+    var lg = g.createLinearGradient(x, y, x + fw, y + fh); lg.addColorStop(0, '#FFE2A0'); lg.addColorStop(0.5, '#E9A93A'); lg.addColorStop(1, '#FFD98A'); g.strokeStyle = lg; g.lineWidth = 2; rrect(g, x + 1, y + 1, fw - 2, fh - 2, rr); g.stroke();
+    g.strokeStyle = 'rgba(243,172,61,.55)'; g.lineWidth = 1; rrect(g, x + 19.5, y + 19.5, fw - 39, fh - 39, Math.max(4, rr - 16)); g.stroke();
+    var m = 10.25, bw = fw - 2 * m, bh = fh - 2 * m, br = Math.max(3, rr - m), per = 2 * (bw - 2 * br) + 2 * (bh - 2 * br) + 6.2832 * br, n = Math.max(12, Math.round(per / 21)), on = reduce ? 2 : sm(t / 1.15) * 1.08;      // the lamps round it
+    for (i = 0; i < n; i++) { var f = i / n, q = perim(x + m, y + m, bw, bh, br, (i + 0.5) / n * per), lit2 = f < on ? 1 : 0, wave = reduce ? 0.75 : 0.42 + 0.58 * Math.pow(0.5 + 0.5 * Math.cos(6.2832 * (f * 3 - 0.3 * t)), 3), b2 = lit2 * Math.max(0.22, Math.min(1, wave + (reduce ? 0 : 0.1 * Math.sin(7.3 * t + 12.9 * i))));
+      var gl = g.createRadialGradient(q[0], q[1], 0, q[0], q[1], 13); gl.addColorStop(0, 'rgba(255,208,128,' + (0.72 * b2).toFixed(3) + ')'); gl.addColorStop(0.5, 'rgba(255,196,110,' + (0.22 * b2).toFixed(3) + ')'); gl.addColorStop(1, 'rgba(255,196,110,0)'); g.fillStyle = gl; g.beginPath(); g.arc(q[0], q[1], 13, 0, 6.2832); g.fill();
+      g.fillStyle = lit2 ? 'rgba(255,' + Math.round(226 + 22 * b2) + ',' + Math.round(170 + 60 * b2) + ',' + (0.6 + 0.4 * b2).toFixed(3) + ')' : 'rgba(120,100,70,.5)'; g.beginPath(); g.arc(q[0], q[1], 3.2, 0, 6.2832); g.fill(); }
+    g.font = '600 ' + L.eSize + 'px ' + SANS; var sp = 0.14 * L.eSize, rw = caps(g, EYE, 0, 0, sp, true) + 62, rh = L.eSize + 18, rx = cx - rw / 2, ry = y - rh / 2, k;      // the name on a gold ribbon across the upper edge
+    for (k = -1; k <= 1; k += 2) { var ex = cx + k * rw / 2; g.fillStyle = '#9C6716'; g.beginPath(); g.moveTo(ex - k * 10, ry + 6); g.lineTo(ex + k * 13, ry + 6); g.lineTo(ex + k * 5, ry + 6 + rh / 2); g.lineTo(ex + k * 13, ry + 6 + rh); g.lineTo(ex - k * 10, ry + 6 + rh); g.closePath(); g.fill(); }      // its two folded ends
+    var rg = g.createLinearGradient(0, ry, 0, ry + rh); rg.addColorStop(0, '#FFE4A6'); rg.addColorStop(0.55, '#EFB24A'); rg.addColorStop(1, '#D9952C'); g.save(); g.shadowColor = 'rgba(0,0,0,.42)'; g.shadowBlur = 10; g.shadowOffsetY = 4; g.fillStyle = rg; rrect(g, rx, ry, rw, rh, 5); g.fill(); g.restore();
+    g.fillStyle = 'rgba(255,255,255,.5)'; g.fillRect(rx + 4, ry + 1, rw - 8, 1); g.textBaseline = 'alphabetic'; g.fillStyle = NAVY; caps(g, EYE, cx, ry + rh / 2 + 0.36 * L.eSize, sp); star(g, rx + 15, ry + rh / 2, 4.2); star(g, rx + rw - 15, ry + rh / 2, 4.2);
+    var a2 = reduce ? 1 : sm((t - 0.7) / 0.8), a3 = reduce ? 1 : sm((t - 1.25) / 0.8);
+    fsWords(g, L, B, { noEye: true, head: '#FFF6E8', sub: 'rgba(255,240,222,.9)', glow: 'rgba(255,196,110,.5)', a: [1, a2, a3], up: [pd, (1 - a2) * 10, (1 - a3) * 8] });
+    g.restore();
+  }
+
+  var FSD = [null, fsLight, fsTag, fsGlass, fsSeal, fsMarquee], FSC = [0, 0, 1, 1, 0, 1];      // the five designs; and which of them have a frame (those are made a little smaller on a low screen, the others set their words smaller)
+  function drawFirst(now) {      // the first screen in the chosen design, on the whole stage
+    var g = words.getContext('2d'), t = (now - t0) / 1000, L = TZ.L, cx = (L.x0 + L.x1) / 2; g.setTransform(TZ.dpr, 0, 0, TZ.dpr, 0, 0); g.clearRect(0, 0, L.W, L.H);
+    if (FV.s < 1 || FV.c1 !== FV.c0) { g.translate(cx, FV.c1); g.scale(FV.s, FV.s); g.translate(-cx, -FV.c0); }
+    FSD[FSKIN](g, L, TZ.B, t); return true;
+  }
+  /* the small switch on the first screen (only while he chooses): Now, 1 to 5 */
+  var pick = el('div', 'ewr-pick', '<i>First screen</i>' + [0, 1, 2, 3, 4, 5].map(function (n) { return '<button type="button" data-n="' + n + '">' + (n || 'Now') + '</button>'; }).join(''));
+  pick.setAttribute('role', 'group'); pick.setAttribute('aria-label', 'First screen: choose a design'); pick.hidden = true; box.appendChild(pick);
+  function pickSync() { Array.prototype.forEach.call(pick.querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-n') === FSKIN)); }); pick.hidden = !(FPICK && phase === 'teaser'); }
+  function fsLeave(ms) { pick.hidden = true; var id = run; if (ms > 0) setTimeout(function () { if (id === run && phase !== 'teaser') wrap.classList.remove('ewr-tz'); }, ms); else wrap.classList.remove('ewr-tz'); }      // the box comes back into sight once the cover hangs in front of it
+  function setFirst(n, held) {
+    FSKIN = Math.max(0, Math.min(5, n | 0)); if (held) { pickHold = true; try { window.localStorage.setItem('ewr-first', String(FSKIN)); } catch (e) {} }
+    if (phase === 'teaser') { t0 = performance.now(); tip.classList.remove('on'); tip.classList.remove('cta'); tipKind = ''; setTeaser(); words.classList.remove('off'); } pickSync(); kick(); return FSKIN;
+  }
+  ['pointerdown', 'pointerup', 'click'].forEach(function (tn) { pick.addEventListener(tn, function (ev) { ev.stopPropagation(); if (tn !== 'click') return; var b = ev.target && ev.target.closest ? ev.target.closest('button') : null; if (b) setFirst(+b.getAttribute('data-n'), true); }); });
 
   /* ---------- the stage: stars, the two beams, the pool of light under the box; and the box itself lit by the lamps ---------- */
   var safeEl = null, safeV = 0, safeT = -1e9;      // SEVENTH BUILD: the lamps' line
@@ -4663,7 +4885,7 @@
     if (idle > 5.5 && tipKind !== 'tear') { tip.textContent = HOW; tip.style.bottom = '50px'; tip.classList.add('on'); tipKind = 'tear'; }      // (under the cover's own small line, over the Skip button)
     return true;
   }
-  function release() { if (lit) return; phase = 'lit'; lit = true; wrap.classList.remove('ewr-hold'); if (P && P.hold) P.hold(false); freeT = 0; try { window.dispatchEvent(new CustomEvent('giftbox:revealed', { detail: { to: TO, from: FROM } })); } catch (e) {} kick(); }
+  function release() { if (lit) return; phase = 'lit'; lit = true; wrap.classList.remove('ewr-hold'); fsLeave(0); if (P && P.hold) P.hold(false); freeT = 0; try { window.dispatchEvent(new CustomEvent('giftbox:revealed', { detail: { to: TO, from: FROM } })); } catch (e) {} kick(); }
   function lights() {                                     // the left lamp, then the right one; then the game is the visitor's
     if (phase !== 'falling') return; var id = run; phase = 'lamps'; lamp.ambT = AMB; placeLamps(); bL.classList.add('show'); bR.classList.add('show'); setLamp('l', true);
     setTimeout(function () { if (id !== run || phase !== 'lamps') return; setLamp('r', true); setTimeout(function () { if (id === run) play('shine', 0.6); }, 420); }, reduce ? 0 : 360);
@@ -4691,10 +4913,10 @@
     bL.classList.remove('show'); bR.classList.remove('show'); bL.setAttribute('aria-pressed', 'false'); bR.setAttribute('aria-pressed', 'false');
     wrap.classList.add('ewr-stage'); wrap.classList.add('ewr-hold'); if (OPT.page !== false) root.classList.add('ewr-page'); root.classList.remove('ewr-pre');
     P = window.EWPlay || P; if (P && P.hold) P.hold(true); skip.hidden = true; guard.hidden = false;                 // (no Skip yet: it comes with the cover)
-    setTeaser(); words.classList.remove('off'); stage(); kick();
+    pickHold = false; setTeaser(); words.classList.remove('off'); pickSync(); stage(); kick();
   }
   function dropShade() {
-    if (phase !== 'teaser') return; phase = 'shade'; SH = makeShade(); box.insertBefore(SH.cv, skip); words.classList.add('off'); guard.hidden = true; tip.classList.remove('on'); tip.classList.remove('cta'); tipKind = '';
+    if (phase !== 'teaser') return; phase = 'shade'; SH = makeShade(); box.insertBefore(SH.cv, skip); words.classList.add('off'); guard.hidden = true; fsLeave(SH.still ? 0 : 1250); tip.classList.remove('on'); tip.classList.remove('cta'); tipKind = '';
     if (SH.still) { SH.slide = 1; SH.arrT = 0; SH.readyT = performance.now(); skip.hidden = false; } else { SH.readyT = performance.now() + 1100; fx('paper', 0.8); }
     try { if (S && S.waiting) S.waiting(true); } catch (e) {}                                                   // the music holds its breath while the cover is up
     tell(EYE + '. ' + HEAD1[0] + '. ' + LINE[0] + ' ' + HOW + ', or press Enter.'); kick();
@@ -4705,7 +4927,7 @@
     if (phase === 'teaser') {
       busy = true; drawTeaser(now); var tt = now - t0;
       if (tt > 1500 && fontsOk && tipKind !== 'open') { tip.textContent = OPEN; tip.classList.add('on'); tip.classList.add('cta'); tipKind = 'open'; }      // the one thing to do
-      if (tt > (reduce ? 3600 : 8000) && fontsOk && !paused) dropShade();
+      if (tt > (reduce ? 3600 : 8000) && fontsOk && !paused && !pickHold) dropShade();      // (while he tries the designs with the switch, the cover waits for his tap)
     }
     if (SH && !SH.still) {
       if (!SH.asleep && !paused) { SH.acc += dt; i = 0; while (SH.acc > 1 / 120 && i < 4) { physics(1 / 120); SH.acc -= 1 / 120; i++; if (!SH) break; } if (SH && i === 4) SH.acc = 0; }
@@ -4838,7 +5060,7 @@
     }, 4200);
   }
   seedStars(); paintSky(); skyShoot(); skyTick();
-  window.EWReveal = { tear: tear, skip: skipAll, again: function (shade) { begin(); if (shade) dropShade(); }, lamp: function (side, on) { side = side === 'r' ? 'r' : 'l'; if (on === undefined) on = lamp[side].t < 0.5; lampUsed = true; setLamp(side, !!on); return !!on; },
+  window.EWReveal = { tear: tear, skip: skipAll, again: function (shade) { begin(); if (shade) dropShade(); }, first: function (n) { return n === undefined ? FSKIN : setFirst(n, false); }, lamp: function (side, on) { side = side === 'r' ? 'r' : 'l'; if (on === undefined) on = lamp[side].t < 0.5; lampUsed = true; setLamp(side, !!on); return !!on; },
     _state: function () { return { phase: phase, lit: lit, to: TO, from: FROM, gift: { given: GIVEN, msg: HASMSG, photo: !!PHOTO, video: !!VIDEO, eye: EYE, head: HEAD1[0], hook: HOOK[0], peek: !!PEEKC }, shade: !!SH, still: !!(SH && SH.still), slide: SH ? SH.slide : 1, cols: SH ? SH.cols + 1 : 0, rows: SH ? SH.rows : 0, held: pinsLeft(), torn: SH ? SH.torn : 0, fall: !!(SH && SH.fall), asleep: !!(SH && SH.asleep),
       hang: SH ? SH.hang : 0, pieces: SH ? SH.pieces : 0, cells: SH ? SH.seen : 0, points: SH ? SH.n : 0, threads: SH ? SH.strands.length : 0, clock: SH ? SH.t : 0, vmax: SH ? SH.vmax || 0 : 0, worst: SH ? SH.worst || 0 : 0, skip: !skip.hidden,
       l: lamp.l.v, r: lamp.r.v, tl: lamp.l.t, tr: lamp.r.t, offL: lamp.l.off, offR: lamp.r.off, on: lamp.on, amb: lamp.amb, busy: !!raf, fonts: fontsOk, tip: tipKind, canvases: box.querySelectorAll('canvas.ewr-shade').length, hold: wrap.classList.contains('ewr-hold') }; },
