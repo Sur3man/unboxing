@@ -289,6 +289,10 @@
   /* a wide screen: just above the lower row; the ticket itself now ends above it (the viewer leaves the room, unbox9.py) */
   @media (orientation: landscape) { html.ew-app .ewp-scan { bottom: calc(var(--ew-sb) + 72px); } }
   @media (orientation: landscape) and (min-height: 600px) { html.ew-app .ewp-scan { bottom: calc(var(--ew-sb) + 83px); } }
+
+  /* ==== BD4 (Tomas, 15 November 04:25: "Put perfectly in top 20 most common devices"): what the check of 45 window sizes found ==== */
+  /* a window 320 points wide (an iPhone with enlarged display, 2.7% of his US visits): Skip, and at the end Replay, lay on the stars. The stars are a little smaller there and stand a little to the right. */
+  @media (max-width: 345px) { html.ew-app.ewr-page .ewp-prog { gap: 4px; padding: 7px 8px; left: calc(50% + 14px); } html.ew-app.ewr-page .ewp-prog i { width: 12px; height: 12px; } }
 </style>
 <script>if(!/[?&]reveal=0(&|$)/.test(location.search)&&window.EW_REVEAL!==false)document.documentElement.className+=' ewr-pre';</script>
 <style>html.ewr-pre,html.ewr-pre body{background:#070B1B}html.ewr-pre .ew-box>img{visibility:hidden}</style>
@@ -595,6 +599,8 @@
   }
   /* frame: the smallest window that holds the box at every angle of the turn */
   var frame = null;
+  var TKZ = 0;      // (BD4) how far in front of the viewer the ticket stands when it is out (mm): the picture's near plane keeps clear of it
+  var FITB = { top: -1, bot: -1, s: 0, k: 1, ts: 0, tk: 1, first: true };      // (BD3) the free room the page gives (points from the picture's upper edge), how far the picture is moved down (in half heights) and eased back, and where both are heading
   function computeFrame() {                  // the smallest window that holds the box at every angle of the turn and with the lid anywhere on its way
     AZ_OPEN = (G.D / 2 + lidBackZ(TH_OPEN)) / 2;                // open: half way between the front edge of the base and the furthest reach of the lid
     if (CFG.frame) { frame = CFG.frame; G.az = lidAz(lidTh); return; }
@@ -672,15 +678,16 @@
     'vec3 P=uP0+uEu*vUv.x+uEv*vUv.y;vec3 V=normalize(uCam-P);vec3 tu=normalize(uEu),tv=normalize(uEv);',
     'vec3 L1=normalize(mix(vec3(-620.0,980.0,760.0),vec3(-540.0,240.0,600.0),uStage.w)-P),L2=normalize(mix(vec3(700.0,820.0,520.0),vec3(540.0,240.0,600.0),uStage.w)-P);',                        // two lamps of the room; they stay put while the box turns
     'float q1=dot(V+L1,tu)+0.45*dot(V+L1,tv),q2=dot(V+L2,tu)-0.35*dot(V+L2,tv);if(uFoD.w>0.0){vec3 dq=P-uP0;q1+=uFoD.w*(dot(dq,tu)+0.35*dot(dq,tv));q2+=0.8*uFoD.w*(dot(dq,tu)-0.5*dot(dq,tv));}',                                    // a grating sends each colour where light and eye agree
-    'if(uZ.z>0.0){vec2 zf=vUv*uSize+uMat.w;float r1=zn(zf/0.45)-0.5,r2=zn(zf/0.09+2.9)-0.5,af=uZ.z*smoothstep(1.5,4.0,0.45/uZ.w),ag=uZ.z*smoothstep(1.5,4.0,0.09/uZ.w);q1+=0.085*af*r1+0.03*ag*r2+uZ.z*0.45*dot(uZs,vec2(1.0,0.5));q2+=0.06*af*r1-0.025*ag*r2+uZ.z*0.35*dot(uZs,vec2(-0.6,1.0));}',   // magnified: the foil lies on paper, and its rainbow ripples with the paper underneath; and it travels a little with the fingers, as under a loupe that is moved
+    'float zt=uMaskOn>1.5?uZ.z:0.0,zb=0.0;if(uZ.z>0.0){vec2 zf=vUv*uSize+uMat.w;float r1=zn(zf/0.45)-0.5,r2=zn(zf/0.09+2.9)-0.5,af=(1.0-zt)*uZ.z*smoothstep(1.5,4.0,0.45/uZ.w),ag=(1.0-zt)*uZ.z*smoothstep(1.5,4.0,0.09/uZ.w);q1+=0.085*af*r1+0.03*ag*r2+uZ.z*0.45*dot(uZs,vec2(1.0,0.5));q2+=0.06*af*r1-0.025*ag*r2+uZ.z*0.35*dot(uZs,vec2(-0.6,1.0));'+
+    'if(zt>0.0){vec2 zr=vec2(0.906*zf.x+0.423*zf.y,0.906*zf.y-0.423*zf.x);float b1=zn(vec2(zr.x/5.0,zr.y/26.0)+1.7)-0.5,b2=zn(vec2(zr.x/1.3,zr.y/9.0)+7.3)-0.5,b3=zn(zr/0.35+3.1)-0.5,w1=zt*smoothstep(20.0,60.0,5.0/uZ.w),w2=zt*smoothstep(10.0,30.0,1.3/uZ.w),w3=zt*smoothstep(4.0,12.0,0.35/uZ.w);q1+=0.90*w1*b1+0.45*w2*b2+0.08*w3*b3;q2+=0.35*w2*b2-0.70*w1*b1-0.06*w3*b3;zb=w3*(zn(vec2(zr.x/0.06,zr.y/2.4)+5.9)-0.5);}}',      // (AQ17) the ticket's foil under the loupe: its rainbow in slow askew bands of three sizes, each fading in when it is large enough to see; and the fine brushed run of the metal   // magnified: the foil lies on paper, and its rainbow ripples with the paper underneath; and it travels a little with the fingers, as under a loupe that is moved
     'float wob=0.05*sin(dot(P,vec3(0.021,0.033,0.017))+1.3);',
-    'float sWl=mix(1.0,uStage.y,uStage.w),sWr=mix(1.0,uStage.z,uStage.w);vec3 pc=(0.6*sWl*hue(1.5*q1+wob+0.60)+0.4*sWr*hue(1.5*q2+0.97-wob))/max(0.6*sWl+0.4*sWr,0.001);pc=0.5+(pc-0.5)*mix(1.0,min(sWl+sWr,1.0)*1.25,uStage.w);',
-    'float env=0.45+0.55*(0.5+0.5*cos(6.2831853*(0.8*q2+0.15)));',                                                   // the colour comes and goes: between the bands the foil is plain silver
-    'float lo=dot(o,vec3(0.2126,0.7152,0.0722));float kq=uKind.w/max(lo,0.001);vec3 ob=mix(o,vec3(lo),uFoD.x)*(kq<1.0?kq:(uKind.w<2.0?1.0+uFo.x*(kq-1.0):1.0));if(uMaskOn>1.5)ob=vec3(uKind.w);',                           // silver: the wall foil is held at a light grey, as metal is in a room
-    'vec3 sm=ob*(0.93+0.11*cos(6.2831853*(0.7*q1+0.3)))*(1.0+uKind.x*env*2.0*(pc-0.5));',                                                                     // smooth foil: silver with a pastel play of colour
+    'float sWl=mix(1.0,uStage.y,uStage.w),sWr=mix(1.0,uStage.z,uStage.w);vec3 pc=(0.6*sWl*hue(1.5*q1+wob+0.60)+0.4*sWr*hue(1.5*q2+0.97-wob))/max(0.6*sWl+0.4*sWr,0.001);pc=0.5+(pc-0.5)*mix(1.0,min(sWl+sWr,1.0)*1.25,uStage.w);pc=mix(pc,hue(1.5*q1+wob+0.60),0.15*zt);',
+    'float env=0.45+0.55*(0.5+0.5*cos(6.2831853*(0.8*q2+0.15)));env=mix(env,1.0,0.5*zt);',                                                   // the colour comes and goes: between the bands the foil is plain silver
+    'float lo=dot(o,vec3(0.2126,0.7152,0.0722));float kq=uKind.w/max(lo,0.001);vec3 ob=mix(o,vec3(lo),uFoD.x)*(kq<1.0?kq:(uKind.w<2.0?1.0+uFo.x*(kq-1.0):1.0));if(uMaskOn>1.5)ob=vec3(uKind.w*(1.0-0.06*zt));',                           // silver: the wall foil is held at a light grey, as metal is in a room
+    'vec3 sm=ob*(0.93+0.11*cos(6.2831853*(0.7*q1+0.3)))*(1.0+uKind.x*(1.0+0.10*zt)*env*2.0*(pc-0.5))*(1.0+0.08*zb);',                                                                     // smooth foil: silver with a pastel play of colour
     'vec3 R=reflect(-V,uNrm);float az=atan(R.x,R.z)+uFo.y*(dot(P,uHx)+0.6*(P.y-40.0))+uFoD.y+uFoD.z*dot(P-uP0,tu);',
     'float sh=2.0*texture2D(uLut,vec2(az*0.15915494+0.5,0.5)).r;',   // soft bands of light round the room (a table made by the script)                                 // bright strips of the room, mirrored
-    'sm+=min(1.0,uKind.z*0.7*sh)*(1.0-sm);',
+    'sm+=min(1.0,uKind.z*0.7*sh*(1.0-0.5*zt))*(1.0-sm);',
     'float a=6.2831853*(1.25*q1+0.9*(l-0.75))+4.5*swp;',                                                                      // the ticket: every embossed facet keeps its own colour and all travel through the spectrum
     'float sp=pow(max(cos(a*1.31+2.0*l),0.0),5.0);',
     'vec3 fa=max(turn(o,a),0.0)*(1.0+uKind.x*2.0*(pc-0.5))*(1.0+0.30*sp)+uKind.z*0.10*sp;',
@@ -844,7 +851,7 @@
     var cap = SLC && w > h ? Math.min(2560 / h, 4096 / w) : 2560 / Math.max(w, h); if (cap < 1) { w = Math.round(w * cap); h = Math.round(h * cap); }      // (a wide picture keeps the box as sharp as a square one of the same height)
     if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; dirty = true; }
   }
-  function projection() {
+  function projection(raw) {      // (raw: as it would be without the fit to the free room and without the loupe)
     var asp = canvas.width / canvas.height, n = cam.R - (SLC || TKC ? 900 : 420), f = cam.R + (SLC ? 1300 : 420), sx, sy, y0;
     if (photoMode) {                                  // the full square photo frame: focal length in units of the half frame
       sy = 1 / CFG.photoF; sx = sy * asp; y0 = 0;
@@ -858,9 +865,32 @@
     if (TKC && tk.t > 0 && !photoMode && TKC.follow !== false) { var fv = tkFit(sx, sy, y0); if (fv) { xc = fv[0] * sx; yc2 = y0 + fv[1] * sy; sxz = sx * fv[2]; syz = sy * fv[2]; } }   // the picture shifts and eases back just as far as the card needs
     if (UB && !photoMode && CFG.lift && asp < 1) yc2 -= CFG.lift * Math.min(1, (1 / asp - 1) / 0.6) * syz;      // an upright screen: the gift stands a little higher
     else if (UB && !photoMode && CFG.liftW && asp >= 1) yc2 -= CFG.liftW * syz;      // (AQ2) a wide screen: a little higher too, so the sign under the gift has room
-    if (zoom) { xc += zoom.cx * sxz; yc2 += zoom.cy * syz; sxz /= zoom.k; syz /= zoom.k; }   // test hook: a close-up window of the same view
+    if (UB && !photoMode && !raw && (FITB.s !== 0 || FITB.k !== 1)) { sxz /= FITB.k; syz /= FITB.k; yc2 += FITB.s * syz; }      // (BD3, BD4) the gift clear of what stands above it and under it
+    if (zoom && !raw) { xc += zoom.cx * sxz; yc2 += zoom.cy * syz; sxz /= zoom.k; syz /= zoom.k; }   // test hook: a close-up window of the same view
+    if (TKC && tk && tk.t > 0 && TKZ > 0 && n > 0.8 * TKZ) n = 0.8 * TKZ;      // (BD4, found 15 November 06:05 on a window 1536 x 730: with the picture eased back the ticket stood nearer than the near plane, 246 mm, and was cut away whole)
     return { m: frustum((xc - sxz) * n, (xc + sxz) * n, (yc2 - syz) * n, (yc2 + syz) * n, n, f), sx: sx, xc: xc, yc: yc2, hx: sxz, hy: syz, sy: sy, y0: y0 };
   }
+  function fitSpan() {      // (BD3) how high the gift stands in the picture as it would be without the fit: its upper and its lower edge (1 = the picture's upper edge, -1 = its lower); every corner of every face that shows, at eight turns, so that turning the gift does not move the picture
+    var b = camBasis(), P = projection(true), pv = mat4mul(P.m, viewMatrix(b)), ang = viewAngle(), lo = 9, hi = -9, i, k, j;
+    for (i = 0; i < ORDER.length; i++) { var n = ORDER[i]; if ((SLF[n] && !slShown()) || ubHidden(n)) continue; var q = facePts(n, lidTh), turns = CBF[n] ? 1 : 8;
+      for (j = 0; j < turns; j++) for (k = 0; k < q.length; k++) { var p = ubRoom(n, q[k], ang + j * Math.PI / 4), w = pv[3] * p[0] + pv[7] * p[1] + pv[11] * p[2] + pv[15]; if (w <= 0) continue;
+        var y = (pv[1] * p[0] + pv[5] * p[1] + pv[9] * p[2] + pv[13]) / w; if (y < lo) lo = y; if (y > hi) hi = y; } }
+    return hi >= lo ? [hi, lo] : null;
+  }
+  function fitStep(dt) {      // (BD3) where the picture has to stand so that the gift lies inside the free room, and a soft way there
+    var ts = 0, tk2 = 1, hpx = canvas.clientHeight || canvas.height;
+    if (UB && !photoMode && FITB.top >= 0 && FITB.bot > FITB.top && hpx > 0) {
+      var sp = null; try { sp = fitSpan(); } catch (e) { sp = null; }
+      if (sp) { var A = 1 - 2 * FITB.top / hpx, B = 1 - 2 * FITB.bot / hpx, hgt = sp[0] - sp[1];
+        if (hgt > 0) { tk2 = Math.max(0.45, Math.min(1, (A - B) / hgt)); var lo = tk2 * sp[0] - A, hi = tk2 * sp[1] - B; ts = lo <= hi ? Math.min(Math.max(0, lo), hi) : lo; } }      // (eased back if it is taller than the room; moved only as far as needed; if both lines cannot be kept, the upper one wins: the words)
+    }
+    FITB.ts = ts; FITB.tk = tk2;
+    var tn = performance.now(), rdt = Math.max(0.001, Math.min(0.6, (tn - (FITB.t || tn)) / 1000)); FITB.t = tn;      // (by the clock, not by the frame: on a slow phone it arrives as soon as on a fast one)
+    var a = FITB.first ? 1 : 1 - Math.exp(-rdt / 0.2), ns = FITB.s + (ts - FITB.s) * a, nk = FITB.k + (tk2 - FITB.k) * a; FITB.first = false;
+    if (Math.abs(ts - ns) < 3e-4) ns = ts; if (Math.abs(tk2 - nk) < 3e-4) nk = tk2;
+    if (ns !== FITB.s || nk !== FITB.k) { FITB.s = ns; FITB.k = nk; dirty = true; }
+  }
+  function fitBusy() { return FITB.s !== FITB.ts || FITB.k !== FITB.tk; }
   var drawN = 0;
   function draw() { drawN++;
     if (!ready) return;
@@ -1074,7 +1104,7 @@
   function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
   function tkHeroK(t) { return ease5(clamp01((t - TK2 - 0.3) / (TKD - TK2 - 0.3))); }      // how far it has come into its pose in front of the viewer
   function tkFit(sx, sy, y0) {                 // the window of the picture that holds the box and the card, wherever the card is: [centre x, centre y, size], in units of the usual picture
-    var b = camBasis(), ps = tkPose(yaw, b, { sx: sx, sy: sy, y0: y0 }), i, w = 0.05, m = 0.07, mb = 0.045;      // w: how softly the card starts to push the edge; room beside the card and beside the box
+    var b = camBasis(), ps = tkPose(yaw, b, { sx: sx, sy: sy, y0: y0, raw: 1 }), i, w = 0.05, m = 0.07, mb = 0.045;      // w: how softly the card starts to push the edge; room beside the card and beside the box
     var bx0 = 9, bx1 = -9, by0 = 9, by1 = -9, cx0 = 9, cx1 = -9, cy0 = 9, cy1 = -9;
     function pr(p) { var d = sub(p, b.C), z = dot(d, b.fwd); return [dot(d, b.right) / z / sx, (dot(d, b.up) / z - y0) / sy]; }
     function sp(x) { return x <= -w ? 0 : x >= w ? x : (x + w) * (x + w) / (4 * w); }                           // the positive part of x, with a soft start
@@ -1119,11 +1149,15 @@
     if (UB && !photoMode && TKC.room !== false && canvas.width >= canvas.height) {      // (BA5) a wide screen: room for the scan button under the ticket (60 px for the upper row, 204 px in all)
       var chh = canvas.clientHeight || canvas.height, cww = canvas.clientWidth || canvas.width, band = Math.max(120, chh - 204);
       TKHe = Math.min(TKH, band * TKI.size_mm[0] / TKI.size_mm[1] / cww); tkv = (60 + band / 2 - chh / 2) / chh;
+      var fk = P.raw ? 1 : FITB.k, fs = P.raw ? 0 : FITB.s, fN = 1 - 2 * (60 + band / 2) / chh;      // (BD4) exactly in its band on the screen, whatever the picture does: the look, the lift (AQ2) and the fit to the free room are taken out again (before, the lift pushed its upper edge 18 px up, under the stars)
+      tkv = -((UB.look || 0) - (CFG.liftW || 0) + (fs + fN) / fk) / 2; TKHe = TKHe / fk;
     }
-    var z3 = TKI.size_mm[0] / (2 * P.sx * TKHe);
-    if (UB && !photoMode && TKC.rise !== false && canvas.width < canvas.height) {      // (AS6) an upright screen: its upper edge just under the upper edge of the board
-      var bq = sub(rotY([0, G.H, -G.D / 2], 0), b.C), bz = dot(bq, b.fwd), lk = CFG.lift ? CFG.lift * Math.min(1, (canvas.height / canvas.width - 1) / 0.6) : 0;
-      if (bz > 1) tkv = (lk + hh / (z3 * P.sy) - ((dot(bq, b.up) / bz - (P.y0 - lk * P.sy)) / P.sy - (TKC.gap === undefined ? 0.02 : TKC.gap))) / 2;
+    var z3 = TKI.size_mm[0] / (2 * P.sx * TKHe); if (!P.raw) TKZ = z3;
+    if (UB && !photoMode && TKC.rise !== false && canvas.width < canvas.height) {      // (AS6, then BD3: "put ticket higher, but that your moment is waiting also") an upright screen: its upper edge under the line printed in the middle of the lid's inside, so that the line stays free
+      var li = FACES.lid_in, lc = [0, 0, 0], lm = [0, 0, 0], ly = [], lj; for (lj = 0; lj < 4; lj++) { lc = add(lc, mul(li[lj], 0.25)); ly.push(li[lj][1]); } ly.sort(function (x, y) { return x - y; });
+      for (lj = 0; lj < 4; lj++) if (li[lj][1] <= ly[1] + 1e-6) lm = add(lm, mul(li[lj], 0.5));      // (the middle of the lid's inside, and the middle of its lower edge, at the hinge: in the open pose)
+      var ld = sub(lm, lc), ll = Math.sqrt(dot(ld, ld)) || 1, bq = sub(rotY(add(lc, mul(ld, Math.min(0.9, (TKC.up === undefined ? 14 : TKC.up) / ll))), 0), b.C), bz = dot(bq, b.fwd);
+      if (bz > 1) tkv = (P.y0 - dot(bq, b.up) / bz + hh / z3) / (2 * P.sy);      // (the lift and the fit move ticket and lid alike, so they drop out)
     }
     var c3 = add(add(b.C, mul(b.fwd, z3)), mul(b.up, (P.y0 - 2 * tkv * P.sy) * z3));   // straight in front of the viewer, TKH of the picture wide, a little below its middle (wide screen), or at the board's upper edge (upright)
     var mid = add(add(mul(add(c2, c3), 0.5), [0, 42, 0]), mul(b.fwd, -20));             // the way there: up out of the box first, then forward
@@ -1408,8 +1442,9 @@
     if (SL && SL.pending && !anim && !dragging) slPending();
     if (TKC) tkStep(now, dt);
     if (UB) ubIdle(now);
+    if (UB) fitStep(dt);      // (BD3)
     if (dirty) draw();
-    if ((TKC && tkBusy(now)) || anim || dragging || vel !== 0 || settle !== null || lidBusy || (SL && (SL.busy || (SL.pending && lidBusy))) || (UB && UB.busy)) schedule();
+    if ((UB && fitBusy()) || (TKC && tkBusy(now)) || anim || dragging || vel !== 0 || settle !== null || lidBusy || (SL && (SL.busy || (SL.pending && lidBusy))) || (UB && UB.busy)) schedule();
   }
   function schedule() { if (!raf) raf = requestAnimationFrame(tick); }
   function evT(ev) { var t = ev && ev.timeStamp, n = performance.now(); return t > 0 && t <= n + 5 && n - t < 250 ? t : n; }   // when the event happened (falls back to now)
@@ -3084,6 +3119,16 @@
       tk.wake = performance.now() - 20000; tk.lastShine = performance.now(); tk.shine = shine === undefined ? -1 : performance.now() - shine * 1150; tk.armed = false; dirty = true; draw(); tkSync(); },
     _tstate: function () { return { dur: TKD, slide: TKS, x: tk.X, v: tk.V, f: tk.f, la: tk.la, ten: tk.ten, stuck: !!tk.stuck, hand: !!tk.hand, t: tk.t, dir: tk.dir, fade: tk.fade, out: tkOut(), armed: tk.armed, shine: tk.shine >= 0, hero: tk.hero, lean: tk.sp.slice(), quad: TKC && ready ? tkQuadPx() : null }; },
     _foil: function (k) { FOIL = k; dirty = true; draw(); },
+    _band: function (top, bot) { top = Math.round(top); bot = Math.round(bot); if (top === FITB.top && bot === FITB.bot) return; FITB.top = top; FITB.bot = bot; if (!raf) lastT = performance.now(); schedule(); },      // (BD3) the page says where the free room for the gift is: its upper and its lower line, in points from the picture's upper edge (-1: none)
+    _fit: function () { var sp = null; try { sp = fitSpan(); } catch (e) {} return { top: FITB.top, bot: FITB.bot, s: FITB.s, k: FITB.k, ts: FITB.ts, tk: FITB.tk, span: sp, h: canvas.clientHeight || canvas.height }; },
+    _tquad: function () { try { return TKC && tk.t > 0 ? tkQuadPx() : null; } catch (e) { return null; } },      // the ticket's four corners in page points (for my checks of the layout)
+    _gbox: function () {      // the gift as it stands in the picture now: left, top, right, bottom in points of the canvas (every corner of every face that shows, at this turn)
+      try { var b = camBasis(), P = projection(), pv = mat4mul(P.m, viewMatrix(b)), ang = viewAngle(), r = canvas.getBoundingClientRect(), x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, i, k;
+        for (i = 0; i < ORDER.length; i++) { var n = ORDER[i]; if ((SLF[n] && !slShown()) || ubHidden(n)) continue; var q = facePts(n, lidTh);
+          for (k = 0; k < q.length; k++) { var p = ubRoom(n, q[k], ang), w = pv[3] * p[0] + pv[7] * p[1] + pv[11] * p[2] + pv[15]; if (w <= 0) continue;
+            var x = ((pv[0] * p[0] + pv[4] * p[1] + pv[8] * p[2] + pv[12]) / w * 0.5 + 0.5) * r.width, y = (0.5 - 0.5 * (pv[1] * p[0] + pv[5] * p[1] + pv[9] * p[2] + pv[13]) / w) * r.height;
+            if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
+        return x1 >= x0 ? [x0, y0, x1, y1] : null; } catch (e) { return null; } },
     _material: function (on) { MAT_ON = !!on; dirty = true; draw(); },
     _outline: function (k) { RIM = k; dirty = true; draw(); },
     _throw: function (deg, v) { lidPeek = false; lidHeld = false; jolt = 0; joltV = 0; lidTh = deg * DEG; lidVel = v; lidSamples = []; lidDrop(); },   // tests: let go at this angle with this speed (rad/s)
@@ -3609,6 +3654,11 @@
     '.ewp-way{display:block;width:100%;text-align:left;border:0;background:none;border-radius:10px;padding:10px 12px;margin:0;cursor:pointer;color:#11324F;font:600 14px/1.2 ' + F + ';-webkit-tap-highlight-color:transparent}' +
     '.ewp-way span{display:block;margin-top:3px;font-weight:400;font-size:12.5px;line-height:1.35;color:#3d566b}.ewp-way[aria-current="true"]{background:#FCEFE9}.ewp-sub{font:600 11px/1 ' + F + ';letter-spacing:.08em;text-transform:uppercase;color:#6b7f90;padding:12px 12px 4px}.ewp-way.sc{font-weight:500;padding:9px 12px}' +
     '.ewp-fx{position:absolute;left:0;top:0;width:100%;height:0;pointer-events:none;z-index:4;display:block}' +
+    '.ewp-here{position:absolute;z-index:5;left:0;top:0;transform:translate(-50%,6px) scale(.86);transform-origin:50% 0;opacity:0;pointer-events:none;transition:opacity .35s ease,transform .45s cubic-bezier(.3,1.6,.5,1);padding:10px 17px;border-radius:999px;font:600 14.5px/1 ' + F + ';letter-spacing:.01em;color:#11324F;white-space:nowrap;' +      // (BD2, Tomas 15 November 04:25: "make after some time the click here on qr code hint, even more prominent, so that it would be clear to press there")
+    'background:linear-gradient(180deg,rgba(255,232,180,.98),rgba(243,172,61,.96));box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 1px rgba(255,255,255,.28),0 10px 26px rgba(243,172,61,.45),0 2px 8px rgba(4,6,26,.35)}' +
+    '.ewp-here:before{content:"";position:absolute;left:50%;top:-7px;margin-left:-8px;border:8px solid transparent;border-top:0;border-bottom-color:#FFE6B0}' +
+    '.ewp-here.on{opacity:1;transform:translate(-50%,0) scale(1);animation:ewp-here 1.3s ease-in-out .5s infinite}.ewp-here .m{display:none}@media (hover:hover) and (pointer:fine){.ewp-here .t{display:none}.ewp-here .m{display:inline}}' +
+    '@keyframes ewp-here{0%,100%{margin-top:0}50%{margin-top:5px}}@media (prefers-reduced-motion: reduce){.ewp-here.on{animation:none}}' +
     '.ewp-scan{position:absolute;left:50%;bottom:12%;transform:translateX(-50%);z-index:5;height:46px;padding:0 20px 0 16px;border:0;border-radius:999px;background:#11324F;color:#fff;font:600 14px/1 ' + F + ';letter-spacing:.02em;white-space:nowrap;display:none;align-items:center;gap:9px;cursor:pointer;box-shadow:0 8px 24px rgba(17,50,79,.35);-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none;touch-action:manipulation}.ewp-scan.on{display:flex;animation:ewp-pop .45s cubic-bezier(.2,1.6,.4,1)}.ewp-scan svg{width:20px;height:20px}' +
     '@keyframes ewp-pop{from{transform:translateX(-50%) scale(.7);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}' +
     '.ewp-pass{position:absolute;left:0;top:0;width:100%;height:100%;z-index:8;pointer-events:none;display:none}.ewp-void{position:absolute;left:0;top:0;width:100%;height:100%;background:#fff;opacity:0;pointer-events:none;z-index:7;transition:opacity .45s ease}.ewp-void.on{opacity:1;pointer-events:auto}.ewp-void.night{background:#0D0E2B}' +
@@ -3666,6 +3716,7 @@
   var turnEl = el('div', 'ewp-turn', '<div class="g sp"><svg class="a2" viewBox="0 0 9 15" aria-hidden="true"><path d="M7 1.5 1.5 7.5 7 13.5"/></svg><svg class="a" viewBox="0 0 9 15" aria-hidden="true"><path d="M7 1.5 1.5 7.5 7 13.5"/></svg><i></i><svg class="b" viewBox="0 0 9 15" aria-hidden="true"><path d="M2 1.5 7.5 7.5 2 13.5"/></svg><svg class="b2" viewBox="0 0 9 15" aria-hidden="true"><path d="M2 1.5 7.5 7.5 2 13.5"/></svg></div><div class="g tu"><svg class="a" viewBox="0 0 15 9" aria-hidden="true"><path d="M1.5 7 7.5 1.5 13.5 7"/></svg><i></i><svg class="b" viewBox="0 0 15 9" aria-hidden="true"><path d="M1.5 2 7.5 7.5 13.5 2"/></svg></div>'),
     pullEl = el('div', 'ewp-pull', '<i></i><i></i><i></i><i></i><i></i>'), turnKind = '', turnLast = '', pullOn = false, lastBling = 0;
   turnEl.setAttribute('aria-hidden', 'true'); pullEl.setAttribute('aria-hidden', 'true'); box.appendChild(turnEl); box.appendChild(pullEl);
+  var hereEl = el('div', 'ewp-here', '<span class="t">Tap here</span><span class="m">Click here</span>'); hereEl.setAttribute('aria-hidden', 'true'); box.appendChild(hereEl);      // (BD2) under the square code of the ticket, once it has waited
   /* the lid's little foil star catches the light (Tomas, 14 November 02:48: "on the box little e star as well ... they need to shine"): a short four-point glint on it
      when the box has turned a good way, when a lamp is switched, and now and then while it rests. Only while the star is in view: the gift stands free, its sleeve is off, the lid is shut. */
   var GL = { t: -1, last: 0, yaw: 0, lamp: '', seen: 0, rests: 0 };
@@ -3741,6 +3792,7 @@
     g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 1.6 * d; g.beginPath(); g.arc(x, y, r - 0.8 * d, 0, 6.283); g.stroke();      // the rim catches the light
     g.globalAlpha = al * 0.55; g.strokeStyle = '#FFD68A'; g.lineWidth = 1 * d; g.beginPath(); g.arc(x, y, r + 1.2 * d, 0, 6.283); g.stroke();      // a gold hairline, as the lamps have
   }
+  function gold(g, x, y, r, al, d) { g.globalAlpha = al * 0.5; g.strokeStyle = '#04061A'; g.lineWidth = 6 * d; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.stroke(); g.globalAlpha = al; g.strokeStyle = '#FFD98A'; g.lineWidth = 2.8 * d; g.shadowColor = 'rgba(243,172,61,.95)'; g.shadowBlur = 12 * d; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.stroke(); g.shadowBlur = 0; g.shadowColor = 'transparent'; }      // (BD2) a gold ring with a glow: round the square code
   function ring(g, x, y, r, al, d) { g.globalAlpha = al * 0.45; g.strokeStyle = '#04061A'; g.lineWidth = 4.6 * d; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.stroke(); g.globalAlpha = al; g.strokeStyle = '#fff'; g.lineWidth = 2 * d; g.beginPath(); g.arc(x, y, r, 0, 6.283); g.stroke(); }
   function ez(x) { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x); }
   function fxTick(t) {
@@ -3773,7 +3825,9 @@
     if (H.tier >= 2 && H.a) {                   // the ring to put the finger on; from step 3 the ghost finger shows the way
       var age = (t - H.t) / 1000, fade = ez(age / 0.35), pop = age < 0.5 ? 1 + 0.28 * Math.sin(Math.PI * Math.min(1, age / 0.5)) * (1 - age / 0.5) - 0.3 * (1 - ez(age / 0.3)) : 1, ax = H.a[0] * d, ay = H.a[1] * d, ph;      // (pop: it grows in a little past its size and settles)
       if (reduce) ring(g, ax, ay, 18 * d, 0.8 * fade, d);
-      else if (H.tier === 2 || !H.b) { ph = (age % 1.5) / 1.5; ring(g, ax, ay, (17 + 21 * ph) * d, 0.85 * fade * (1 - ph), d); ring(g, ax, ay, 14 * d * pop, 0.6 * fade, d); if (H.tap && H.tier >= 3) { ph = (age % 1.5) / 1.5; disc(g, ax, ay, (19 - 5 * Math.sin(Math.PI * Math.min(1, ph * 2.2))) * d, 0.9 * fade * (ph < 0.8 ? 1 : (1 - ph) / 0.2), d); } }
+      else if (H.tier === 2 || !H.b) { ph = (age % 1.5) / 1.5;
+        if (H.key === 'scan' && H.tier >= 3 && H.cr) { var p2 = ((age + 0.75) % 1.5) / 1.5, hf = ez((t - (H.hereT || t)) / 450); gold(g, ax, ay, H.cr * d * (1 + 0.5 * ph), 0.95 * hf * (1 - ph), d); gold(g, ax, ay, H.cr * d * (1 + 0.5 * p2), 0.95 * hf * (1 - p2), d); gold(g, ax, ay, H.cr * d, hf, d); }      // (BD2) the code itself asks: a gold ring round it, and two that run outwards
+        ring(g, ax, ay, (17 + 21 * ph) * d, 0.85 * fade * (1 - ph), d); ring(g, ax, ay, 14 * d * pop, 0.6 * fade, d); if (H.tap && H.tier >= 3) { ph = (age % 1.5) / 1.5; disc(g, ax, ay, (19 - 5 * Math.sin(Math.PI * Math.min(1, ph * 2.2))) * d, 0.9 * fade * (ph < 0.8 ? 1 : (1 - ph) / 0.2), d); } }
       else {
         var zipK = H.key === 'zip', cyc = zipK ? 1.35 : 2.1, q = (age % cyc) / cyc, mv = zipK ? ez((q - 0.04) / 0.86) : ez((q - 0.14) / 0.56), al = zipK ? (q < 0.07 ? q / 0.07 : q > 0.88 ? Math.max(0, (1 - q) / 0.12) : 1) : (q < 0.1 ? q / 0.1 : q > 0.78 ? Math.max(0, (0.92 - q) / 0.14) : 1), bx = H.b[0] * d, by = H.b[1] * d, j;      // (along the strip: one run after the other, no waiting between them)
         ring(g, ax, ay, 14 * d * pop, 0.5 * fade, d);
@@ -3804,11 +3858,11 @@
     if (l.lid < 3 && !l.lidBusy) { a = fromNdc(E._ndc(0, 34, 69.5)); return { key: 'lid', step: 3, a: a, b: [a[0], a[1] - 0.17 * r.height], say: 'Lift the lid, or tap it' }; }
     if (l.lid < open - 2) return null;
     if (k && k.f === 0 && k.dir === 0) { a = cardAt(0.42, 0.5); b = cardAt(0.92, 0.5); return a ? { key: 'take', step: 4, a: a, b: b, say: 'Pull the ticket out, or tap it' } : null; }
-    if (k && k.f >= 1 && k.dir === 0) { a = cardAt(QR[0], QR[1]); return a ? { key: 'scan', step: 5, a: a, b: null, tap: true, slow: 1.7, say: 'Tap the square to open your gift' } : null; }
+    if (k && k.f >= 1 && k.dir === 0) { a = cardAt(QR[0], QR[1]); return a ? { key: 'scan', step: 5, a: a, b: null, tap: true, slow: 1.3, say: 'Tap the square to open your gift' } : null; }      // (BD2: the help at the code comes sooner: ring after about 3 s, the label after about 5 s)
     return null;
   }
   var LAD = [1.2, 2.4, 4.0, 6.5];              // seconds without a touch until: twinkle, ring, ghost finger, words (sixth build: about twice as soon)
-  function hideHelp() { if (H.tier) { H.tier = 0; H.a = null; if (H.words && words) { words.style.opacity = '0'; H.words = false; } kick(); } }
+  function hideHelp() { if (H.here) { H.here = false; hereEl.className = 'ewp-here'; } if (H.tier) { H.tier = 0; H.a = null; if (H.words && words) { words.style.opacity = '0'; H.words = false; } kick(); } }
   function help(now, u, s, l, k, z, open) {
     var busy = held || u.busy || u.raf && u.stage === 'auto' || l.lidBusy || l.dragging || l.held || s.busy || s.held || (k && (k.dir !== 0 || k.hand)) || z.on || scanning || !sheet.hidden;
     var T = !busy && mode.id !== 'music' && mode.id !== 'hunt' ? target(u, s, l, k, open) : null;
@@ -3824,6 +3878,9 @@
       if (tier >= 4 && words && !H.words && T.key !== 'scan') { words.textContent = T.say; words.style.opacity = '1'; H.words = true; }      // (at the scan the badge itself says what to do)
       H.tier = tier; if (tier >= 2) { fit(); kick(); }
     }
+    var here = T.key === 'scan' && tier >= 3;      // (BD2) the label under the square code, and how large the gold ring round the code is
+    if (here) { var hq = k && k.quad ? k.quad : null, hb = cardAt(QR[0], 1); if (hq && hb) { H.cr = 0.62 * 21.2 / 131 * Math.sqrt((hq[1][0] - hq[0][0]) * (hq[1][0] - hq[0][0]) + (hq[1][1] - hq[0][1]) * (hq[1][1] - hq[0][1])); hereEl.style.left = Math.round(T.a[0]) + 'px'; hereEl.style.top = Math.round(hb[1] + 13) + 'px'; } else here = false; }
+    if (here !== !!H.here) { H.here = here; if (here) H.hereT = now; hereEl.className = 'ewp-here' + (here ? ' on' : ''); kick(); }
   }
   function learned(step) {                    // a step is done: who needed no ghost finger for it gets the next help later, who needed it gets it sooner
     var key = ['turn', 'zip', 'sleeve', 'lid', 'take', 'scan'][step];
@@ -5096,7 +5153,7 @@
      "Start over" as quiet glass capsules, in from the corner; the invitation to switch the sound on as a large gold glass capsule that folds into the round sound switch. */
   var GLQ = 'background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.04) 46%,rgba(255,255,255,.09)),rgba(18,22,58,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.38),inset 0 -1px 0 rgba(255,255,255,.08),inset 0 0 0 1px rgba(255,255,255,.11),0 6px 16px rgba(4,6,26,.2);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);',
     RIMG = 'inset 0 1px 0 rgba(255,255,255,.8),inset 0 -1px 0 rgba(255,255,255,.2),inset 0 0 0 1px rgba(255,255,255,.24)';
-  var css = '.ew7-guide{position:absolute;z-index:5;left:50%;top:calc(var(--ew-it2,12px) + 106px);transform:translate(-50%,6px);width:min(88%,440px);text-align:center;pointer-events:none;opacity:0;transition:opacity .55s ease,transform .55s ease;color:#11324F}html.ewr-page .ew7-guide{color:#FCEFE9}' +
+  var css = '.ew7-guide{position:absolute;z-index:5;left:50%;top:calc(var(--ew-it2,12px) + 66px);transform:translate(-50%,6px);width:min(88%,440px);text-align:center;pointer-events:none;opacity:0;transition:opacity .55s ease,transform .55s ease,top .35s ease;color:#11324F}@media (orientation:portrait){html.ew7-n2 .ew7-guide{top:calc(var(--ew-it2,12px) + 106px)}}html.ewr-page .ew7-guide{color:#FCEFE9}' +
     '.ew7-guide.on{opacity:1;transform:translate(-50%,0)}' +
     '.ew7-guide b{display:block;font:500 clamp(22px,6.4vw,30px)/1.14 ' + FH + ';letter-spacing:.005em}html.ewr-page .ew7-guide b{text-shadow:0 2px 16px rgba(4,6,26,.6)}' +
     '.ew7-guide span{display:inline-block;margin-top:7px;font:400 13.5px/1.3 ' + FS + ';color:#3d566b;letter-spacing:.03em}html.ewr-page .ew7-guide span{color:rgba(252,239,233,.86);text-shadow:0 1px 10px rgba(4,6,26,.7)}.ew7-guide span:empty{display:none}' +
@@ -5228,6 +5285,22 @@
     if (sn + '|' + want !== invKey) { invKey = sn + '|' + want; if (want) invT = now; }
     var show = want && key === 'cover' && (sn === 'locked' || now - invT < 8000); showInv(show); root.classList.toggle('ew7-inv', show);      // (STEP 7C: the capsule stands at the lower right of the first screens only; on the stage that place belongs to the lamp and the wide button, and the round switch itself asks)      // switched off by the person: eight seconds, and once more at the lid; not allowed yet by the phone: until a tap
     if (bS) bS.classList.toggle('ew7-want', want);
+    // 4 (BD3, BD4) an upright screen: the second row moves the words down; and the viewer is told the free room for the gift, under the words and above the lamps
+    var n2 = (bAll.classList.contains('on') || bStart.classList.contains('on')) && !end; root.classList.toggle('ew7-n2', n2);
+    room(key, !!w);
+  }
+  function room(key, words) {
+    if (!E || !E._band) return;
+    try {
+      if (key === 'load' || key === 'teaser' || key === 'cover') { E._band(-1, -1); return; }
+      var cv = box.querySelector('canvas[role="application"]') || box, o = cv.getBoundingClientRect(), top = 0, bot = o.height, r, i, q, wide = window.innerWidth >= window.innerHeight;
+      q = document.querySelector(wide ? '.ewp-prog' : '.ewp-top'); if (q) { r = q.getBoundingClientRect(); if (r.height > 0) top = Math.max(top, r.bottom - o.top + 10); }      // (a wide screen: the gift stands under the stars; Skip, the sound switch and the words stand beside it)
+      if (!wide && root.classList.contains('ew7-n2')) { r = nav.getBoundingClientRect(); if (r.height > 0) top = Math.max(top, r.bottom - o.top + 10); }
+      if (!wide && words) { r = guide.getBoundingClientRect(); if (r.height > 0) top = Math.max(top, r.bottom - o.top + 12 - (guide.classList.contains('on') ? 0 : 6)); }      // (the words rise by 6 points as they come in)
+      q = document.querySelectorAll(wide ? '.ewp-scan.on,.ew-bar' : '.ewr-lamp.show,.ewp-scan.on,.ew-bar'); for (i = 0; i < q.length; i++) { r = q[i].getBoundingClientRect(); if (r.height > 0 && r.top - o.top > 0.4 * o.height) bot = Math.min(bot, r.top - o.top - 10); }      // (a wide screen: the lamps stand in the corners, beside the gift)
+      q = document.querySelector('.ewp-turn.on'); if (q) bot -= Math.min(90, q.offsetHeight + 26);      // (the sign under the gift needs its own room)
+      E._band(top, bot);
+    } catch (e) {}
   }
   if (S && S.on) S.on('event', function (name) { if (name === 'curtain') { startOver(); return; } if (name !== 'wrongside') return; tick(); guide.classList.remove('hey'); void guide.offsetWidth; guide.classList.add('hey'); setTimeout(function () { guide.classList.remove('hey'); }, 1900); });      // (AP)
   var tickN = 0, tickErr = '';
