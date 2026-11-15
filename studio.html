@@ -898,7 +898,7 @@
     if (TKC && tk.t > 0 && !photoMode && TKC.follow !== false) { var fv = tkFit(sx, sy, y0); if (fv) { xc = fv[0] * sx; yc2 = y0 + fv[1] * sy; sxz = sx * fv[2]; syz = sy * fv[2]; } }   // the picture shifts and eases back just as far as the card needs
     if (UB && !photoMode && CFG.lift && asp < 1) yc2 -= CFG.lift * Math.min(1, (1 / asp - 1) / 0.6) * syz;      // an upright screen: the gift stands a little higher
     else if (UB && !photoMode && CFG.liftW && asp >= 1) yc2 -= CFG.liftW * syz;      // (AQ2) a wide screen: a little higher too, so the sign under the gift has room
-    if (UB && !photoMode && !raw && (FITB.s !== 0 || FITB.k !== 1)) { sxz /= FITB.k; syz /= FITB.k; yc2 += FITB.s * syz; }      // (BD3, BD4) the gift clear of what stands above it and under it
+    if (UB && !photoMode && (!raw || raw === 2) && (FITB.s !== 0 || FITB.k !== 1)) { sxz /= FITB.k; syz /= FITB.k; yc2 += FITB.s * syz; }      // (BD3, BD4) the gift clear of what stands above it and under it
     if (zoom && !raw) { xc += zoom.cx * sxz; yc2 += zoom.cy * syz; sxz /= zoom.k; syz /= zoom.k; }   // test hook: a close-up window of the same view
     if (TKC && tk && tk.t > 0 && TKZ > 0 && n > Math.min(0.8 * TKZ, TKZ - 80)) n = Math.max(40, Math.min(0.8 * TKZ, TKZ - 80));      // (BD4, found 15 November 06:05 on a window 1536 x 730: with the picture eased back the ticket stood nearer than the near plane, 246 mm, and was cut away whole; AQ18: turned edge on, its near border comes 66 mm closer still, so the plane keeps 80 mm clear of its middle)
     return { m: frustum((xc - sxz) * n, (xc + sxz) * n, (yc2 - syz) * n, (yc2 + syz) * n, n, f), sx: sx, xc: xc, yc: yc2, hx: sxz, hy: syz, sy: sy, y0: y0 };
@@ -1471,7 +1471,9 @@
   function tick(now) {
     raf = 0;
     var dt = Math.max(0, Math.min(0.05, (now - lastT) / 1000)) * SPD; lastT = now;      // (never backwards: a frame's own time can lie a little before the moment a hand let go)
-    if (zmTick(dt)) { if (dirty) draw(); if (zmBusy()) schedule(); return; }      // magnified: only the zoom moves
+    var zmf = zmTick(dt);
+    if (zmf && ZM.tlk > 0 && UB && ((ZM.did === 'zip' && UB.stage === 'auto') || (ZM.did === 'card' && TKC && tk.dir === 1))) zmSet(0);      // (AG4) the strip is off, or the ticket comes out: the picture goes back whole, so that what follows is seen
+    if (zmf && !zmLive()) { if (dirty) draw(); if (zmBusy()) schedule(); return; }      // magnified: only the zoom moves, unless the strip or the ticket is in a hand or still moving (AG4)
     if (anim) {
       var u = Math.max(0, Math.min(1, (now - anim.t0) / anim.dur));
       if (anim.nudge) {                       // a small turn out and back, to show that the box can be moved
@@ -1503,7 +1505,7 @@
     if (UB) ubIdle(now);
     if (UB) fitStep(dt);      // (BD3)
     if (dirty) draw();
-    if ((UB && fitBusy()) || (TKC && tkBusy(now)) || anim || dragging || vel !== 0 || settle !== null || lidBusy || (SL && (SL.busy || (SL.pending && lidBusy))) || (UB && UB.busy)) schedule();
+    if ((zmf && zmBusy()) || (UB && fitBusy()) || (TKC && tkBusy(now)) || anim || dragging || vel !== 0 || settle !== null || lidBusy || (SL && (SL.busy || (SL.pending && lidBusy))) || (UB && UB.busy)) schedule();
   }
   function schedule() { if (!raf) raf = requestAnimationFrame(tick); }
   function evT(ev) { var t = ev && ev.timeStamp, n = performance.now(); return t > 0 && t <= n + 5 && n - t < 250 ? t : n; }   // when the event happened (falls back to now)
@@ -2423,7 +2425,7 @@
     if (g.kind === 'tip') {
       var s0 = UB.samples[0], s1 = UB.samples[UB.samples.length - 1]; UB.held = false;
       if (s0 && s1 !== s0 && now - s1.t < 80) { UB.w = Math.max(-UBP.vmax, Math.min(UBP.vmax, (s1.a - s0.a) / Math.max(0.016, (s1.t - s0.t) / 1000))); ubThrown(g.th0); }      // thrown: it keeps the speed of the hand
-    } else if (g.kind === 'zip') { UB.zheld = false; UB.hand = null; }
+    } else if (g.kind === 'zip') { UB.zheld = false; UB.hand = null; if (ev.type === 'pointerup' && now - g.t < 500 && g.far < (g.type === 'mouse' ? 6 : 16)) ubGo(); }      // (AG4) a short press on the strip itself: the strip's own move
     else if (g.kind === 'wait' && ev.type === 'pointerup' && now - g.t < 500) ubGo();                             // a short press: the stage's own move
     ubKick(); return true;
   }
@@ -2858,6 +2860,31 @@
      (units of the whole picture, -1..1); (nx, ny): where on the screen that point is shown, (tnx, tny): where it is going */
   var ZM = { lk: 0, vk: 0, tlk: 0, ax: 0, ay: 0, nx: 0, ny: 0, vx: 0, vy: 0, tnx: 0, tny: 0, w: 18, ptr: {}, n: 0, pinch: null, pan: null, synth: false, btn: null, tap: null, hold: false, ui: false, g0: 0, shx: 0, shy: 0 };      // (shx, shy: how far the fingers have travelled while magnified: the foil's rainbow travels with them)
   function zmOn() { return !!ZC && (ZM.hold || ZM.tlk > 1e-4 || ZM.lk > 1e-4); }          // magnified, or on the way: the shot is frozen
+  function zmActs(ev) {      // (AG4) magnified: is this press meant for the gift itself? on the strip of the courier box, or on (or just beside) the ticket in its pocket
+    if (!UB || !ready) return null; var x = ev.clientX, y = ev.clientY;
+    if (UB.stage === 'zip' && UB.s < UB.S && !UB.fly && !UB.zgo) return ubOnStrip(x, y) ? 'zip' : null;
+    if (UB.stage === 'free' && TKC && tk.f === 0 && tk.dir === 0 && ubCardOk() && !lidBusy && Math.abs(wrapPi(yaw)) < 0.7) return tkHit(x, y) || (ev.pointerType !== 'mouse' && TK_NEAR > 0 && tkNear(x, y, TK_NEAR)) ? 'card' : null;
+    return null;
+  }
+  function zmLive() {      // (AG4) magnified, yet something of the gift is in a hand or still moving: then the shot goes on
+    if (!UB) return false;
+    if (ZM.act !== null && ZM.act !== undefined) return true;
+    if (ZM.did === 'zip' && (UB.stage === 'auto' || (UB.stage === 'zip' && (UB.zheld || UB.zgo || UB.zv > 0 || !!UB.fly || (UB.rod.P.length > 0 && UB.rod.calm < 99) || (UB.lipK > 0 && UB.lipK < 1))))) return true;
+    if (ZM.did === 'card' && TKC && (!!tk.hand || tk.dir !== 0 || tk.V !== 0 || tk.land >= 0 || tk.nt >= 0 || (tk.f > 0 && tk.f < 1))) return true;
+    return false;
+  }
+  function zmStripReach() {      // (AG4) how far from the picture's middle the strip of the courier box reaches, sideways and upwards (in half pictures, without the loupe)
+    try { var Z = UBC.zip, b = camBasis(), pv = mat4mul(projection(2).m, viewMatrix(b)), mx = 0, my = 0, i;
+      for (i = 0; i < 2; i++) { var p = ubX(UB.cm, [-UBC.W / 2 + (i ? Z.x1 : Z.x0), -0.5, UBC.D / 2 - (Z.z0 + Z.z1) / 2]), w = pv[3] * p[0] + pv[7] * p[1] + pv[11] * p[2] + pv[15]; if (w <= 0) return null;
+        mx = Math.max(mx, Math.abs((pv[0] * p[0] + pv[4] * p[1] + pv[8] * p[2] + pv[12]) / w)); my = Math.max(my, Math.abs((pv[1] * p[0] + pv[5] * p[1] + pv[9] * p[2] + pv[13]) / w)); }
+      return [mx, my]; } catch (e) { return null; }
+  }
+  function zmGift(zq) {      // how far the middle of the magnified window may leave the picture's middle (in half pictures): it stays on the gift; with the strip to the front it may go as far as the strip reaches (AG4)
+    var gx = ZP.gw / (zq.sx * cam.R), gy = ZP.gh / (zq.sy * cam.R);
+    if (UB && UB.stage === 'zip') { var zl = zmStripReach(); if (zl) ZM.rch = zl; }
+    if (ZM.rch) { gx = Math.max(gx, ZM.rch[0]); gy = Math.max(gy, ZM.rch[1]); }      // (kept until the picture is whole again: the window does not jump at the moment the strip comes off)
+    return [gx, gy];
+  }
   function zmNdc(ev) { var r = canvas.getBoundingClientRect(); return [(ev.clientX - r.left) / r.width * 2 - 1, 1 - (ev.clientY - r.top) / r.height * 2]; }
   function zmGain() { return 1 / (1 + ZP.aim * Math.max(0, ZM.lk) / Math.LN2); }            // aiming: free at first, less and less the deeper it goes
   function zmAnchor(p) {                      // from now on the zoom holds on to the point of the picture that is under p (screen, -1..1)
@@ -2868,7 +2895,7 @@
   function zmKick() { if (!raf) lastT = performance.now(); schedule(); }
   function zmIdle() {                         // starts the wait after which a magnified picture goes back whole
     if (ZM.rt) { clearTimeout(ZM.rt); ZM.rt = 0; } if (!ZC || ZM.stay || !ZP.back || !(ZM.tlk > 0 || ZM.lk > 1e-4)) return;
-    ZM.rt = setTimeout(function () { ZM.rt = 0; if (ZM.n > 0 || ZM.pan || ZM.pinch || ZM.hold) { zmIdle(); return; } if (ZM.tlk > 0 || ZM.lk > 1e-4) { ZM.tlk = 0; ZM.w = ZP.wb; zmKick(); } }, ZP.back);
+    ZM.rt = setTimeout(function () { ZM.rt = 0; if (ZM.n > 0 || ZM.pan || ZM.pinch || ZM.hold) { zmIdle(); return; } if (ZM.tlk > 0 || ZM.lk > 1e-4) { ZM.tlk = 0; ZM.w = ZP.wb; zmKick(); } }, ZM.rms = ZM.did ? Math.max(ZP.back, 2400) : ZP.back);      // (AG4) longer once the strip or the ticket was taken: there is time to take it again
   }
   function zmSet(lk, w) { if (!ZC) return; ZM.tlk = Math.max(0, Math.min(Math.log(ZP.max), lk)); ZM.w = w || ZP.wk; if (ZM.tlk > 0) zmFreeze(); zmKick(); zmIdle(); }
   function zmUi() {
@@ -2877,7 +2904,7 @@
     ZM.ui = on; if (ZM.btn) ZM.btn.style.display = on ? 'flex' : 'none';
     canvas.style.touchAction = on ? 'none' : ''; root.style.touchAction = on ? 'none' : '';      // while magnified every move of a finger belongs to the picture
   }
-  function zmEnd() { ZM.lk = ZM.tlk = ZM.vk = ZM.ax = ZM.ay = ZM.nx = ZM.ny = ZM.tnx = ZM.tny = ZM.vx = ZM.vy = ZM.shx = ZM.shy = 0; ZM.pan = null; zoom = null; zmUi(); dirty = true; lastT = performance.now(); }      // the picture is whole again: nothing of the zoom is left
+  function zmEnd() { ZM.lk = ZM.tlk = ZM.vk = ZM.ax = ZM.ay = ZM.nx = ZM.ny = ZM.tnx = ZM.tny = ZM.vx = ZM.vy = ZM.shx = ZM.shy = 0; ZM.pan = null; ZM.did = null; ZM.rch = null; zoom = null; zmUi(); dirty = true; lastT = performance.now(); }      // the picture is whole again: nothing of the zoom is left
   function zmTick(dt) {                       // moves the zoom on; true while the shot is frozen
     if (!ZC) return false;
     if (!zmOn()) { if (zoom || ZM.lk !== 0 || ZM.vk !== 0) zmEnd(); return false; }      // nothing is magnified (what a zoom that ended between two frames left behind is cleared)
@@ -2889,7 +2916,7 @@
     }
     if (ZM.lk < 0) { ZM.lk = 0; if (ZM.vk < 0) ZM.vk = 0; }
     if (!ZM.hold && ((ZM.tlk === 0 && ZM.lk < 3e-4 && Math.abs(ZM.vk) < 3e-3) || !zmOn())) { zmEnd(); return false; }      // back at the whole picture: everything goes on (also when the zoom has fallen below what counts as magnified while it still moves)
-    var k = Math.exp(ZM.lk), lim = 1 - 1 / k, cx = ZM.ax - ZM.nx / k, cy = ZM.ay - ZM.ny / k, zq = projection(), zgx = ZP.gw / (zq.sx * cam.R), zgy = ZP.gh / (zq.sy * cam.R), lx = Math.min(lim, zgx), ly = Math.min(lim, zgy);
+    var k = Math.exp(ZM.lk), lim = 1 - 1 / k, cx = ZM.ax - ZM.nx / k, cy = ZM.ay - ZM.ny / k, zq = projection(), zg = zmGift(zq), zgx = zg[0], zgy = zg[1], lx = Math.min(lim, zgx), ly = Math.min(lim, zgy);
     if (cx > lx) cx = lx; if (cx < -lx) cx = -lx; if (cy > ly) cy = ly; if (cy < -ly) cy = -ly;      // the window stays inside the picture, and its middle on the gift
     ZM.nx = (ZM.ax - cx) * k; ZM.ny = (ZM.ay - cy) * k;
     var kt = Math.exp(ZM.tlk), lt = 1 - 1 / kt, tx = ZM.ax - ZM.tnx / kt, ty = ZM.ay - ZM.tny / kt, ltx = Math.min(lt, zgx), lty = Math.min(lt, zgy);
@@ -2926,7 +2953,7 @@
     root.appendChild(b); ZM.btn = b;
     function zmStale(type, keep) {                                             // forgets fingers that can no longer be there
       var k, gone = false; for (k in ZM.ptr) if ((type === null || ZM.ptr[k].t === type) && +k !== keep) { delete ZM.ptr[k]; gone = true; }
-      if (!gone) return false; ZM.n = Object.keys(ZM.ptr).length; ZM.pinch = null; ZM.pan = null; ZM.hold = false; ZM.tap = null;
+      if (!gone) return false; ZM.n = Object.keys(ZM.ptr).length; ZM.pinch = null; ZM.pan = null; ZM.hold = false; ZM.tap = null; ZM.act = null;
       if (ZM.bend) { try { ubBendEnd(); } catch (e) {} ZM.bend = false; }
       if (ZM.tlk < ZP.snap) zmSet(0, ZP.w); zmIdle(); zmKick(); return true;
     }
@@ -2953,7 +2980,7 @@
           try { canvas.dispatchEvent(new PointerEvent('pointercancel', { pointerId: +other, bubbles: true, clientX: o.x, clientY: o.y, pointerType: o.t })); } catch (e) {}
           ZM.synth = false;
         }
-        zmFreeze(); ZM.pan = null; ZM.hold = true; ZM.tap = null;
+        zmFreeze(); ZM.pan = null; ZM.hold = true; ZM.tap = null; ZM.act = null;      // (AG4: a second finger: what the first one held is let go, the two magnify)
         var a = ZM.ptr[ids[0]], c = ZM.ptr[ids[1]], mid = zmNdc({ clientX: (a.x + c.x) / 2, clientY: (a.y + c.y) / 2 });
         zmAnchor(mid); ZM.w = ZP.wf; ZM.tlk = Math.max(0, ZM.lk);
         ZM.pinch = { d0: Math.max(10, Math.sqrt((a.x - c.x) * (a.x - c.x) + (a.y - c.y) * (a.y - c.y))), lk0: ZM.tlk, mid: mid };
@@ -2961,6 +2988,7 @@
       }
       if (ZM.n > 1) { ev.stopPropagation(); return; }
       if (zmOn()) {                                                            // magnified: one finger, or the mouse, moves the picture
+        var acts = zmActs(ev); if (acts) { ZM.act = ev.pointerId; ZM.did = acts; ZM.tap = null; if (ZM.rt) { clearTimeout(ZM.rt); ZM.rt = 0; } zmKick(); return; }      // (AG4) ... unless it comes down on the strip or on the ticket in its pocket: then it takes that, the picture stays magnified
         var now = performance.now();
         if (ZM.tap && now - ZM.tap.t < 380 && Math.abs(ev.clientX - ZM.tap.x) < 32 && Math.abs(ev.clientY - ZM.tap.y) < 32) {     // a double tap: back to the whole picture
           ZM.tap = null; delete ZM.ptr[ev.pointerId]; ZM.n = Object.keys(ZM.ptr).length; zmSet(0); ev.stopPropagation(); ev.preventDefault(); return;
@@ -2998,6 +3026,7 @@
       if (ZM.synth) return;
       if (!ZM.ptr[ev.pointerId]) return;
       delete ZM.ptr[ev.pointerId]; ZM.n = Object.keys(ZM.ptr).length;
+      if (ZM.act === ev.pointerId) { ZM.act = null; zmIdle(); zmKick(); return; }      // (AG4) the finger that held the strip or the ticket has gone: the gift's own handlers see it; the wait for the whole picture starts anew
       if (ZM.bend) { ubBendEnd(); if (ZM.n === 0) ZM.bend = false; ev.stopPropagation(); return; }      // a finger of the bend has gone: the card springs flat; the other finger does nothing more
       if (ZM.pinch) {                                                          // a finger of the pinch has gone: the zoom stays as it is
         ZM.pinch = null; if (ZM.n === 0) ZM.hold = false;
@@ -3067,9 +3096,9 @@
     zoomOut: function () { zmSet(0); },
     _zstay: function (on) { ZM.stay = !!on; zmIdle(); return ZM.stay; },      // (tests and pictures: a magnified picture stays as it is)
     getZoom: function () { return Math.exp(ZM.lk); },
-    _zstate: function () { return { k: Math.exp(ZM.lk), target: Math.exp(ZM.tlk), on: zmOn(), busy: zmBusy(), cx: zoom ? zoom.cx : 0, cy: zoom ? zoom.cy : 0, hold: ZM.hold, n: ZM.n, stay: !!ZM.stay, wait: !!ZM.rt, pan: !!ZM.pan, pinch: !!ZM.pinch, lx: zoom ? Math.min(1 - 1 / zoom.k, ZP.gw / (projection().sx * cam.R)) : 0, ly: zoom ? Math.min(1 - 1 / zoom.k, ZP.gh / (projection().sy * cam.R)) : 0, gain: zmGain(), btn: !!ZM.btn && ZM.btn.style.display !== 'none' }; },
+    _zstate: function () { return { k: Math.exp(ZM.lk), target: Math.exp(ZM.tlk), on: zmOn(), busy: zmBusy(), cx: zoom ? zoom.cx : 0, cy: zoom ? zoom.cy : 0, hold: ZM.hold, n: ZM.n, stay: !!ZM.stay, wait: !!ZM.rt, pan: !!ZM.pan, pinch: !!ZM.pinch, lx: zoom ? Math.min(1 - 1 / zoom.k, zmGift(projection())[0]) : 0, ly: zoom ? Math.min(1 - 1 / zoom.k, zmGift(projection())[1]) : 0, gain: zmGain(), btn: !!ZM.btn && ZM.btn.style.display !== 'none' }; },
     _zset: function (k, cx, cy) {             // tests: the zoom at rest at k times, its window centred on (cx, cy)
-      ZM.lk = ZM.tlk = Math.log(Math.max(1, k)); ZM.vk = ZM.vx = ZM.vy = ZM.shx = ZM.shy = 0; ZM.ax = cx || 0; ZM.ay = cy || 0; ZM.nx = ZM.ny = ZM.tnx = ZM.tny = 0; ZM.hold = false;
+      ZM.rch = null; ZM.lk = ZM.tlk = Math.log(Math.max(1, k)); ZM.vk = ZM.vx = ZM.vy = ZM.shx = ZM.shy = 0; ZM.ax = cx || 0; ZM.ay = cy || 0; ZM.nx = ZM.ny = ZM.tnx = ZM.tny = 0; ZM.hold = false;
       zoom = k > 1 ? { cx: ZM.ax, cy: ZM.ay, k: k } : null; if (k > 1) zmFreeze(); zmUi(); dirty = true; draw();
     },
     _photoCamera: function (on, flat) { photoMode = !!on; photoModeFlat = !!flat; computeFrame(); dirty = true; draw(); },
@@ -3150,6 +3179,7 @@
       tk.wake = performance.now() - 20000; tk.lastShine = performance.now(); tk.shine = shine === undefined ? -1 : performance.now() - shine * 1150; tk.armed = false; dirty = true; draw(); tkSync(); },
     _tstate: function () { return { dur: TKD, slide: TKS, x: tk.X, v: tk.V, f: tk.f, la: tk.la, ten: tk.ten, stuck: !!tk.stuck, hand: !!tk.hand, t: tk.t, dir: tk.dir, fade: tk.fade, out: tkOut(), armed: tk.armed, shine: tk.shine >= 0, hero: tk.hero, lean: tk.sp.slice(), quad: TKC && ready ? tkQuadPx() : null }; },
     _foil: function (k) { FOIL = k; dirty = true; draw(); },
+    _zlive: function () { return { act: ZM.act === undefined ? null : ZM.act, did: ZM.did || null, live: zmLive(), on: zmOn(), back: ZM.rms || 0 }; },      // (AG4, for my checks; back: the wait that was started last before the picture goes back whole, ms)
     _tturn: function (a, held) { if (!TKC) return; tk.wx = a; tk.bT = 0; tk.wake = performance.now(); if (!held) tkTurnRest(); if (!raf) lastT = performance.now(); schedule(); },      // (AQ18, for my checks) the card turned by a (rad) as a hand would hold it; not held: as let go there
     _tfront: function () { if (TKC) { tkTurnRest(); tkTurnFront(); } },      // (AQ18) the card's front to the viewer (the page calls it before the code is scanned)
     _tside: function () { return TKC ? { wx: tk.wx || 0, turn: tk.sp[1], back: Math.cos(tk.sp[1]) < 0, wait: tk.bT ? performance.now() - tk.bT : -1 } : null; },
